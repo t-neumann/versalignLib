@@ -1,0 +1,1 @@
+add_executable (Versalign main.cpp)
