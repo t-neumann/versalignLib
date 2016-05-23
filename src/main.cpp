@@ -5,11 +5,13 @@
  *      Author: tobias.neumann
  */
 
+#include "Kernels/SWKernel.h"
 #include <iostream>
 #include <string>
 
 using std::cout;
 using std::string;
+using std::endl;
 
 int main(int argc, char *argv[]) {
 
@@ -34,7 +36,19 @@ int main(int argc, char *argv[]) {
 	const char *a2_s = a2.c_str();
 	string a3 = "asdgasdgbmaaaaaaaaaa";
 	const char *a3_s = a3.c_str();
-	std::cout << "Hello world" << std::endl;
+
+	AlignmentKernel * kernel = new SWKernel();
+
+	cout << "Scoring read:\t" << a << endl;
+	cout << "Scoring ref:\t" << b << endl;
+
+	float score = kernel->score_alignment(a_s, (float)a.size(), b_s, (float)b.size(),3.0f, 3.0f, 2.0f, 5.0f);
+
+	cout << "Alignment scored " << score << endl;
+
+	delete kernel;
+	kernel = 0;
+
 	return 0;
 }
 

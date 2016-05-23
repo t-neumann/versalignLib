@@ -1,3 +1,4 @@
 .cproject
-./build
-./bin
+build
+bin
+.project

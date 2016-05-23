@@ -1,0 +1,1 @@
+add_library(SWKernel SWKernel.cpp)
