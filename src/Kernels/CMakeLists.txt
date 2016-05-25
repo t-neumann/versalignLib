@@ -1,1 +1,1 @@
-add_library(SWKernel SWKernel.cpp)
+add_library(Kernels SWKernel.cpp SSEKernel.cpp)
