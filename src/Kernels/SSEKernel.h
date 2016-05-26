@@ -26,15 +26,17 @@ class SSEKernel: public AlignmentKernel {
 public:
 	SSEKernel() {
 
-		scoreGapRead = 3;
-		scoreGapRef = 3;
+		scoreGapRead = -3;
+		scoreGapRef = -3;
 		scoreMatch = 2;
-		scoreMismatch = 5;
+		scoreMismatch = -1;
 
 		x_scoreMatch = short_to_sse(scoreMatch);
 		x_scoreMismatch = short_to_sse(scoreMismatch);
 		x_scoreGapRead = short_to_sse(scoreGapRead);
 		x_scoreGapRef = short_to_sse(scoreGapRef);
+
+		x_zeros = short_to_sse(0);
 	}
 
 	virtual ~SSEKernel() {}
@@ -86,7 +88,7 @@ private:
 	__m128i x_scoreGapRead;
 	__m128i x_scoreGapRef;
 
-	__m128i m_zeros;
+	__m128i x_zeros;
 
 };
 
