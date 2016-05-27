@@ -11,6 +11,6 @@
 #include <string.h>
 
 inline int max(int a, int b);
-size_t pad(char const * * strings, int const & n);
+size_t pad(char const * * strings, int const & n, char const & pad);
 
 #endif /* VERSALIGNUTIL_H_ */

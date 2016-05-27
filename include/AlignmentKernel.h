@@ -14,15 +14,8 @@ public:
 
 	virtual ~AlignmentKernel() {}
 
-	virtual float score_alignment(char const * read, float const & read_length,
-			char const * reference, float const & reference_length,
-			float const & gap_read, float const & gap_ref, float const & match,
-			float const & mismatch) = 0;
-	virtual float score_alignment_corridor(char const * read,
-			float const & read_length, char const * reference,
-			float const & reference_length, float const & gap_read,
-			float const & gap_ref, float const & match, float const & mismatch,
-			float const & corridor_width) = 0;
+	virtual void score_alignment(char const * const * const read,
+			char const * const * const ref, short * const scores) = 0;
 };
 
 #endif /* INCLUDE_ALIGNMENTKERNEL_H_ */

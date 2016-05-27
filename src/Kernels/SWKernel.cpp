@@ -10,19 +10,11 @@
 using std::cout;
 using std::endl;
 
-// Helper declaration
-
-float get_score(char const & a, char const & b, float const & match,
-		float const & mismatch);
-
-void print_row(char const & a, float * row, float const & reference_length);
+inline short max(short a, short b) {
+  return a > b ? a : b;
+}
 
 // Class method implementation
-
-SWKernel::SWKernel() {
-	// TODO Auto-generated constructor stub
-
-}
 
 SWKernel::~SWKernel() {
 	// TODO Auto-generated destructor stub
@@ -30,116 +22,102 @@ SWKernel::~SWKernel() {
 
 // Main functions
 
-float SWKernel::score_alignment(char const * read, float const & read_length,
-		char const * reference, float const & reference_length,
-		float const & gap_read, float const & gap_ref, float const & match,
-		float const & mismatch) {
+void SWKernel::score_alignment(char const * const * const read,
+		char const * const * const ref, short * const scores) {
 
-	cout << "  - ";
-	for (int i = 0; i < reference_length; ++i) {
-		cout << reference[i] << " ";
-	}
-	cout << endl;
+	short max_score = 0;
 
-	float max_score = 0.0f;
+	short * matrix = new short[(refLength + 1) * 2]();
 
-	float * pPrev = new float[(int) reference_length + 1];
-	float * pNext = new float[(int) reference_length + 1];
+	int prev_row = 0;
+	int current_row = 1;
 
-	for (int i = 0; i <= (int) reference_length; ++i) {
-		pPrev[i] = 0.0f;
-	}
+	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
 
-	print_row('-', pPrev, reference_length);
+			for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
 
-	for (int read_index = 0; read_index < (int) read_length; ++read_index) {
-		for (int reference_index = 0; reference_index <= (int) reference_length;
-				++reference_index) {
-			pNext[reference_index] = std::max(pPrev[reference_index] + gap_ref,
-					0.0f);
-			if (reference_index > 0) {
-				pNext[reference_index] = std::max(pNext[reference_index],
-						pNext[reference_index - 1] + gap_read);
-				pNext[reference_index] = std::max(pNext[reference_index],
-						pPrev[reference_index - 1]
-								+ get_score(read[read_index],
-										reference[reference_index - 1], match,
-										mismatch));
+				short up = matrix[prev_row * (refLength + 1) + ref_pos + 1];
+				short diag = matrix[prev_row * (refLength + 1) + ref_pos];
+				short left = matrix[current_row * (refLength + 1) + ref_pos];
+
+				read[0][read_pos] == ref[0][ref_pos] ? diag += scoreMatch : diag += scoreMismatch;
+
+				short cur = max(up + scoreGapRef, max(left + scoreGapRead, max(diag, 0)));
+
+				matrix[current_row * (refLength + 1) + ref_pos + 1] = cur;
+
+				max_score = max(max_score, cur);
+			}
+			prev_row = current_row;
+			(++current_row) &= 1;
+		}
+	delete [] matrix; matrix = 0;
+	memset(scores, max_score, 1);
+}
+
+xy_coordinates SWKernel::calculate_alignment_matrix(char const * const * const read,
+		char const * const * const ref, mat_element * const matrix) {
+
+	short best_read_pos = 0;
+	short best_ref_pos = 0;
+	short max_score = 0;
+
+	int prev_row = 0;
+	int current_row = 1;
+
+	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
+
+		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
+
+			mat_element up = matrix[prev_row * (refLength + 1) + ref_pos + 1];
+			mat_element diag = matrix[prev_row * (refLength + 1) + ref_pos];
+			mat_element left = matrix[current_row * (refLength + 1) + ref_pos];
+
+			short compareScore = 0;
+			read[0][read_pos] == ref[0][ref_pos] ? compareScore = diag.score + scoreMatch : compareScore = diag.score + scoreMismatch;
+
+			short curScore = max(up.score + scoreGapRef, max(left.score + scoreGapRead, max(compareScore, 0)));
+
+			matrix[current_row * (refLength + 1) + ref_pos].score = curScore;
+
+			if(up.score + scoreGapRef == curScore) {
+				matrix[current_row * (refLength + 1) + ref_pos].path = upwards;
+			} else if (left.score + scoreGapRead == curScore) {
+				matrix[current_row * (refLength + 1) + ref_pos].path = leftwards;
+			} else if (diag.score + compareScore == curScore) {
+				matrix[current_row * (refLength + 1) + ref_pos].path = diagonal;
 			}
 
-			if (pNext[reference_index] > max_score) {
-				max_score = pNext[reference_index];
+			if (curScore > max_score) {
+				best_read_pos = read_pos;
+				best_ref_pos = ref_pos;
+				max_score = curScore;
 			}
 		}
-		print_row(read[read_index], pNext, reference_length);
-		delete[] pPrev;
-		pPrev = pNext;
-		pNext = new float[(int) reference_length + 1];
-	}
-	delete []pNext; pNext = 0;
-
-	return max_score;
-}
-
-float SWKernel::score_alignment_corridor(char const * read,
-		float const & read_length, char const * reference,
-		float const & reference_length, float const & gap_read,
-		float const & gap_ref, float const & match, float const & mismatch,
-		float const & corridor_width) {
-
-	float max_score = 0.0f;
-
-	float * pPrev = new float[(int) corridor_width];
-	float * pNext = new float[(int) corridor_width];
-
-	for (int i = 0; i < (int) corridor_width; ++i) {
-		pPrev[i] = 0.0f;
+		prev_row = current_row;
+		++current_row;
 	}
 
-	for (int read_index = 0; read_index < (int) read_length; ++read_index) {
-		for (int reference_index = 0; reference_index < (float) corridor_width;
-				++reference_index) {
+	xy_coordinates best_score;
+	best_score.x = best_read_pos;
+	best_score.y = best_ref_pos;
 
-			pNext[reference_index] = std::max(0.0f,
-					pPrev[reference_index]
-							+ get_score(read[read_index],
-									reference[reference_index - 1 + read_index],
-									match, mismatch));
-
-			if (reference_index < corridor_width - 1) {
-				pNext[reference_index] = std::max(
-						pPrev[reference_index + 1] + gap_ref,
-						pNext[reference_index]);
-			}
-
-			if (reference_index > 0) {
-				pNext[reference_index] = std::max(pNext[reference_index],
-						pNext[reference_index - 1] + gap_read);
-			}
-
-			if (pNext[reference_index] > max_score) {
-				max_score = pNext[reference_index];
-			}
-		}
-
-		delete[] pPrev;
-		pPrev = pNext;
-		pNext = new float[(int) corridor_width];
-	}
-
-	return max_score;
+	return best_score;
 }
 
-float get_score(char const & a, char const & b, float const & match,
-		float const & mismatch) {
-	return a == b ? match : mismatch;
+void SWKernel::calc_alignment(char const * const * const read,
+		char const * const * const ref, char * const * const aligned_read,
+		char * const * const aligned_ref) {
+
+	mat_element * matrix = new mat_element[(refLength + 1) * (readLength + 1)]();
+
+	xy_coordinates best_score = calculate_alignment_matrix(read, ref, matrix);
+
+	std::cout << "Best scores:\t" << best_score.x << "\t" << best_score.y << std::endl;
+
+	bool backtrack = true;
+
+	//while()
+
+	delete [] matrix; matrix = 0;
 }
-
-void print_row(char const & a, float * row, float const & reference_length) {
-
-	for (int i = 0; i <= reference_length; ++i) {
-		std::cout << row[i] << " ";
-	}
-	std::cout << std::endl;
-}
-

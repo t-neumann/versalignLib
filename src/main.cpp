@@ -12,39 +12,14 @@
 #include <iostream>
 #include <string>
 
+#define READ_PAD '\0'
+#define REF_PAD '$'
+
 using std::cout;
 using std::string;
 using std::endl;
 
 int main(int argc, char *argv[]) {
-
-	int const RUNS = 1000;
-
-	std::cout << "Startup\n";
-
-	string b = "aaaaaaaaaabbbbbbbaaaaaaaaaa";
-	const char * b_s = b.c_str();
-
-	string a = "aaaaaaaaaaaaaaaaaaaa";
-	const char *a_s = a.c_str();
-
-	AlignmentKernel * kernel = new SWKernel();
-
-	cout << "Scoring read:\t" << a << endl;
-	cout << "Scoring ref:\t" << b << endl;
-
-	Timer timer;
-
-	timer.start();
-
-	float score = kernel->score_alignment(a_s, (float)a.size(), b_s, (float)b.size(),3.0f, 3.0f, 2.0f, 5.0f);
-
-	timer.stop();
-
-	cout << "Alignment scored " << score << endl;
-	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() << " ms" << endl;
-
-	delete kernel; kernel = 0;
 
 	/*char const
 				* reads[] =
@@ -84,22 +59,23 @@ int main(int argc, char *argv[]) {
 					* reads[] =
 							{
 									"AAAAAAAA",
-									"TTTTTTTT",
+									"AATTTTAA",
 									"AAAATAAA",
 									"TTTTAAAA",
 									"AAATTTAA",
 									"ATATATAT",
 									"TAAAAAAT",
 									"TAAAATTT" };
+
 	int seqNumber = 8;
 
-	size_t max_read_length = pad(reads, seqNumber);
+	size_t max_read_length = pad(reads, seqNumber, READ_PAD);
 
-	size_t max_ref_length =	pad(refs, seqNumber);
+	size_t max_ref_length =	pad(refs, seqNumber, REF_PAD);
 
 	SSEKernel * ssekernel = new SSEKernel();
 
-	short * scores = 0;
+	short * scores = new short[seqNumber];
 
 	ssekernel->set_read_length(max_read_length);
 	ssekernel->set_reference_length(max_ref_length);
@@ -113,7 +89,49 @@ int main(int argc, char *argv[]) {
 //
 //		cout << "MaxLen: " << maxReadLen << ", " << maxRefLen << endl;
 
+	for (int i = 0; i < seqNumber; ++i) {
+		cout << reads[i] << ":\t" << scores[i] << endl;
+	}
+
 	delete ssekernel; ssekernel = 0;
+	delete scores; scores = 0;
+
+	SWKernel * kernel = new SWKernel();
+	kernel->set_read_length(max_read_length);
+	kernel->set_reference_length(max_ref_length);
+
+	Timer timer;
+
+	timer.start();
+
+	for (int i = 0; i < seqNumber; ++i) {
+		char const * const * const read = reads + i;
+		char const * const * const ref = refs + i;
+
+		short * const score = (short * const)malloc(sizeof(short));
+		memset(score, 0, sizeof(short));
+
+		kernel->score_alignment(read, ref, score);
+
+		cout << *(read) << ":\t"
+				<< *score << endl;
+		free(score);
+
+		char * const malloc_read = (char * const)malloc(sizeof(char) * max_read_length * max_ref_length * seqNumber);
+		char * const malloc_ref = (char * const)malloc(sizeof(char) * max_read_length * max_ref_length * seqNumber);
+
+		char * const * const aligned_read = &malloc_read;
+		char * const * const aligned_ref = &malloc_ref;
+
+		kernel->calc_alignment(read, ref, aligned_read, aligned_ref);
+
+	}
+
+	timer.stop();
+
+	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() << " ms" << endl;
+
+	delete kernel; kernel = 0;
 
 	cout << "Sizeof char * " << sizeof(char *) << endl;
 	cout << "Sizeof int * " << sizeof(int *) << endl;

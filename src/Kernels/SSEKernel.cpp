@@ -13,22 +13,6 @@
 #define SCORING_ROWS 2
 #define SSE_SIZE 8
 
-float SSEKernel::score_alignment(char const * read, float const & read_length,
-		char const * reference, float const & reference_length,
-		float const & gap_read, float const & gap_ref, float const & match,
-		float const & mismatch) {
-	return 0.f;
-}
-float SSEKernel::score_alignment_corridor(char const * read,
-		float const & read_length, char const * reference,
-		float const & reference_length, float const & gap_read,
-		float const & gap_ref, float const & match, float const & mismatch,
-		float const & corridor_width) {
-
-	return 0.f;
-
-}
-
 void print_sse_char (__m128i sse) {
 	short * tmp;
 	malloc16(tmp, sizeof(short) * 8, 16);
@@ -57,12 +41,15 @@ void print_sse_short (__m128i sse) {
 	free(tmp);
 }
 
-void SSEKernel::score_alignment (char const * const * const ref, char const * const * const read, short * scores) {
+void SSEKernel::score_alignment (char const * const * const read, char const * const * const ref, short * const scores) {
 
 	__m128i max_score = short_to_sse(0);
 
-	malloc16(scores, sizeof(short) * (refLength + 1) * SCORING_ROWS * SSE_SIZE,16);
-	memset(scores, 0, sizeof(short) * (refLength + 1) * SCORING_ROWS * SSE_SIZE);
+	// Initialize SSE matrix
+	short * matrix = 0;
+
+	malloc16(matrix, sizeof(short) * (refLength + 1) * SCORING_ROWS * SSE_SIZE,16);
+	memset(matrix, 0, sizeof(short) * (refLength + 1) * SCORING_ROWS * SSE_SIZE);
 
 	// offset for first and second row
 	int prev_row = 0;
@@ -85,8 +72,8 @@ void SSEKernel::score_alignment (char const * const * const ref, char const * co
 
 		sse_read_bases = _mm_load_si128((__m128i const *) read_bases);
 
-		std::cout << "Read base:\t";
-		print_sse_char(sse_read_bases);
+//		std::cout << "Read base:\t";
+//		print_sse_char(sse_read_bases);
 
 		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
 
@@ -97,20 +84,20 @@ void SSEKernel::score_alignment (char const * const * const ref, char const * co
 
 			sse_ref_bases = _mm_load_si128((__m128i const *) ref_bases);
 
-			std::cout << "Ref base:\t";
-			print_sse_char(sse_ref_bases);
+//			std::cout << "Ref base:\t";
+//			print_sse_char(sse_ref_bases);
 
 			// load relevant matrix cells (up, diag, left)
-			__m128i up = _mm_load_si128((__m128i *) (scores + SSE_SIZE * (prev_row * (refLength + 1) + ref_pos + 1)));
-			__m128i diag = _mm_load_si128((__m128i *) (scores + SSE_SIZE * (prev_row * (refLength + 1) + ref_pos)));
-			__m128i left = _mm_load_si128((__m128i *) (scores + SSE_SIZE * (cur_row * (refLength + 1) + ref_pos)));
+			__m128i up = _mm_load_si128((__m128i *) (matrix + SSE_SIZE * (prev_row * (refLength + 1) + ref_pos + 1)));
+			__m128i diag = _mm_load_si128((__m128i *) (matrix + SSE_SIZE * (prev_row * (refLength + 1) + ref_pos)));
+			__m128i left = _mm_load_si128((__m128i *) (matrix + SSE_SIZE * (cur_row * (refLength + 1) + ref_pos)));
 
-			std::cout << "Up:\t";
-			print_sse_short(up);
-			std::cout << "Left:\t";
-			print_sse_short(left);
-			std::cout << "Diag:\t";
-			print_sse_short(diag);
+//			std::cout << "Up:\t";
+//			print_sse_short(up);
+//			std::cout << "Left:\t";
+//			print_sse_short(left);
+//			std::cout << "Diag:\t";
+//			print_sse_short(diag);
 
 			// add gap penalties to up and left
 			up = _mm_add_epi16(up, x_scoreGapRef);
@@ -130,33 +117,27 @@ void SSEKernel::score_alignment (char const * const * const ref, char const * co
 			// Cell value will be max of upper + gap penalty, left + gap penalty, diag + match/mismatch score or 0
 			__m128i cell = _mm_max_epi16(diag, _mm_max_epi16(left, _mm_max_epi16(up, x_zeros)));
 
-			std::cout << "Up:\t";
-			print_sse_short(up);
-			std::cout << "Left:\t";
-			print_sse_short(left);
-			std::cout << "Diag:\t";
-			print_sse_short(diag);
-			std::cout << "Max:\t";
-			print_sse_short(cell);
+//			std::cout << "Up:\t";
+//			print_sse_short(up);
+//			std::cout << "Left:\t";
+//			print_sse_short(left);
+//			std::cout << "Diag:\t";
+//			print_sse_short(diag);
+//			std::cout << "Max:\t";
+//			print_sse_short(cell);
 
-			_mm_store_si128((__m128i *) (scores + SSE_SIZE * (cur_row * (refLength + 1) + ref_pos)), cell);
+			_mm_store_si128((__m128i *) (matrix + SSE_SIZE * (cur_row * (refLength + 1) + ref_pos + 1)), cell);
 
 			max_score = _mm_max_epi16(cell, max_score);
-
-			char x;
-			std::cin >> x;
-
-//
-//			__m128i cur = _mm_max_epi16(n, _mm_max_epi16(w, _mm_max_epi16(nw, m_xZero)));
-//
-//			max_score = _mm_max_epi16(cell, max_score);
-//
-//			_mm_store_si128((__m128i *) (scores + 8 * (cl * (m_Corridor + 2) + i)), cur);
 
 		}
 		prev_row = cur_row;
 		(++cur_row) &= 1;
 	}
+
+	free(matrix);
+
+	_mm_store_si128((__m128i *)scores, max_score);
 }
 
 #undef SCORING_ROWS
