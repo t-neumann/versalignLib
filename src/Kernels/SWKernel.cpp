@@ -47,6 +47,7 @@ void SWKernel::score_alignment(char const * const * const read,
 				matrix[current_row * (refLength + 1) + ref_pos + 1] = cur;
 
 				max_score = max(max_score, cur);
+
 			}
 			prev_row = current_row;
 			(++current_row) &= 1;
@@ -78,7 +79,7 @@ xy_coordinates SWKernel::calculate_alignment_matrix(char const * const * const r
 
 			short curScore = max(up.score + scoreGapRef, max(left.score + scoreGapRead, max(compareScore, 0)));
 
-			matrix[current_row * (refLength + 1) + ref_pos].score = curScore;
+			matrix[current_row * (refLength + 1) + ref_pos + 1].score = curScore;
 
 			if(up.score + scoreGapRef == curScore) {
 				matrix[current_row * (refLength + 1) + ref_pos].path = upwards;
@@ -113,9 +114,28 @@ void SWKernel::calc_alignment(char const * const * const read,
 
 	xy_coordinates best_score = calculate_alignment_matrix(read, ref, matrix);
 
-	std::cout << "Best scores:\t" << best_score.x << "\t" << best_score.y << std::endl;
+	int read_pos = best_score.x;
+	int ref_pos = best_score.y;
 
-	bool backtrack = true;
+	mat_element backtrack = matrix[(read_pos + 1) * (refLength + 1) + ref_pos + 1];
+
+	while(backtrack.path != start) {
+		std::cout << backtrack.path;
+
+		if (backtrack.path == upwards) {
+			--read_pos;
+		}
+		if (backtrack.path == leftwards) {
+			--ref_pos;
+		}
+		if (backtrack.path == diagonal) {
+			--ref_pos;
+			--read_pos;
+		}
+		backtrack = matrix[(read_pos + 1) * (refLength + 1) + ref_pos + 1];
+	}
+
+	std::cout << "Best scores:\t" << best_score.x << "\t" << best_score.y << "\t" << backtrack.score << std::endl;
 
 	//while()
 
