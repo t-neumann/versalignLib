@@ -56,88 +56,137 @@ void SWKernel::score_alignment(char const * const * const read,
 	memset(scores, max_score, 1);
 }
 
-xy_coordinates SWKernel::calculate_alignment_matrix(char const * const * const read,
-		char const * const * const ref, mat_element * const matrix) {
+void SWKernel::calculate_alignment_matrix(char const * const * const read,
+		char const * const * const ref, alnMat const matrix, short * const best_coordinates) {
 
 	short best_read_pos = 0;
 	short best_ref_pos = 0;
 	short max_score = 0;
 
-	int prev_row = 0;
-	int current_row = 1;
+	short prev_row_score = 0;
+	short current_row_score = 1;
+
+	short current_row_aln = 1;
+
+	short * scoreMat = new short[(refLength + 1) * 2]();
 
 	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
 
 		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
 
-			mat_element up = matrix[prev_row * (refLength + 1) + ref_pos + 1];
-			mat_element diag = matrix[prev_row * (refLength + 1) + ref_pos];
-			mat_element left = matrix[current_row * (refLength + 1) + ref_pos];
+			short up = scoreMat[prev_row_score * (refLength + 1) + ref_pos + 1];
+			short diag = scoreMat[prev_row_score * (refLength + 1) + ref_pos];
+			short left = scoreMat[current_row_score * (refLength + 1) + ref_pos];
 
-			short compareScore = 0;
-			read[0][read_pos] == ref[0][ref_pos] ? compareScore = diag.score + scoreMatch : compareScore = diag.score + scoreMismatch;
+			read[0][read_pos] == ref[0][ref_pos] ? diag += scoreMatch : diag += scoreMismatch;
 
-			short curScore = max(up.score + scoreGapRef, max(left.score + scoreGapRead, max(compareScore, 0)));
+			short cur = max(up + scoreGapRef, max(left + scoreGapRead, max(diag, 0)));
 
-			matrix[current_row * (refLength + 1) + ref_pos + 1].score = curScore;
+			scoreMat[current_row_score * (refLength + 1) + ref_pos + 1] = cur;
 
-			if(up.score + scoreGapRef == curScore) {
-				matrix[current_row * (refLength + 1) + ref_pos].path = upwards;
-			} else if (left.score + scoreGapRead == curScore) {
-				matrix[current_row * (refLength + 1) + ref_pos].path = leftwards;
-			} else if (diag.score + compareScore == curScore) {
-				matrix[current_row * (refLength + 1) + ref_pos].path = diagonal;
+			char pointer = START;
+
+			if (cur == 0) {
+				pointer = START;
+			} else if (cur == diag) {
+				pointer = DIAG;
+			} else if (cur == up + scoreGapRef) {
+				pointer = UP;
+			} else if (cur == left + scoreGapRead) {
+				pointer = LEFT;
 			}
 
-			if (curScore > max_score) {
+			matrix[current_row_aln * (refLength + 1) + ref_pos + 1] = pointer;
+
+			if (cur > max_score) {
 				best_read_pos = read_pos;
 				best_ref_pos = ref_pos;
-				max_score = curScore;
+				max_score = cur;
 			}
+
+			std::cout << cur << " ";
 		}
-		prev_row = current_row;
-		++current_row;
+		std::cout << std::endl;
+
+		prev_row_score = current_row_score;
+		(++current_row_score) &= 1;
+
+		++current_row_aln;
 	}
 
-	xy_coordinates best_score;
-	best_score.x = best_read_pos;
-	best_score.y = best_ref_pos;
+	best_coordinates[0] = best_read_pos;
+	best_coordinates[1] = best_ref_pos;
 
-	return best_score;
 }
 
 void SWKernel::calc_alignment(char const * const * const read,
-		char const * const * const ref, char * const * const aligned_read,
-		char * const * const aligned_ref) {
+		char const * const * const ref, Alignment * const alignment) {
 
-	mat_element * matrix = new mat_element[(refLength + 1) * (readLength + 1)]();
+	alnMat matrix = new char [alnLength];
+	memset(matrix, START, alnLength * sizeof(char));
 
-	xy_coordinates best_score = calculate_alignment_matrix(read, ref, matrix);
+	short * best_coordinates = new short[2];
 
-	int read_pos = best_score.x;
-	int ref_pos = best_score.y;
+	std::cout << "Score matrix" << std::endl;
 
-	mat_element backtrack = matrix[(read_pos + 1) * (refLength + 1) + ref_pos + 1];
+	calculate_alignment_matrix(read, ref, matrix, best_coordinates);
 
-	while(backtrack.path != start) {
-		std::cout << backtrack.path;
-
-		if (backtrack.path == upwards) {
-			--read_pos;
+	std::cout << "Matrix:" << std::endl;
+	for (int i = 0; i < readLength + 1; ++i) {
+		for (int j = 0; j < refLength + 1; ++j) {
+			std::cout << matrix[i * (refLength + 1) + j] << " ";
 		}
-		if (backtrack.path == leftwards) {
-			--ref_pos;
-		}
-		if (backtrack.path == diagonal) {
-			--ref_pos;
-			--read_pos;
-		}
-		backtrack = matrix[(read_pos + 1) * (refLength + 1) + ref_pos + 1];
+		std::cout << std::endl;
 	}
 
-	std::cout << "Best scores:\t" << best_score.x << "\t" << best_score.y << "\t" << backtrack.score << std::endl;
+	char * alignments = new char[alnLength * 2];
 
-	//while()
+	int read_pos = best_coordinates[0];
+	int ref_pos = best_coordinates[1];
 
-	delete [] matrix; matrix = 0;
+	std::cout << "Best read: " << read_pos << std::endl << "Best ref: " << ref_pos << std::endl;
+
+	int aln_pos = alnLength - 2;
+
+	char backtrack = matrix[(read_pos + 1) * (refLength + 1) + ref_pos + 1];
+
+	std::cout << "Backtrack start:\t";
+
+	while(backtrack != START) {
+
+		std::cout << backtrack;
+
+		if (backtrack == UP) {
+			alignments[alnLength + aln_pos] = '-';
+			alignments[aln_pos] = read[0][read_pos--];
+		}
+		if (backtrack == LEFT) {
+			alignments[aln_pos] = '-';
+			alignments[alnLength + aln_pos] = ref[0][ref_pos--];
+		}
+		if (backtrack == DIAG) {
+			alignments[aln_pos] = read[0][read_pos--];
+			alignments[alnLength + aln_pos] = ref[0][ref_pos--];
+		}
+		backtrack = matrix[(read_pos + 1) * (refLength + 1) + ref_pos + 1];
+		--aln_pos;
+	}
+
+	std::cout << "\tBacktrack end" << std::endl;
+
+	std::cout << "==================" << std::endl;
+	for (int i = 0; i < alnLength; ++i) {
+		std::cout << alignments[i];
+	}
+	std::cout << std::endl;
+	for (int i = alnLength; i < alnLength * 2; ++i) {
+		std::cout << alignments[i];
+	}
+	std::cout << std::endl << "==================" << std::endl;
+//
+//
+//
+//	//while()
+//
+//	delete [] matrix; matrix = 0;
 }

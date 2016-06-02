@@ -18,4 +18,13 @@ public:
 			char const * const * const ref, short * const scores) = 0;
 };
 
+struct Alignment {
+	char * read;
+	char * ref;
+	short readStart;
+	short readEnd;
+	short refStart;
+	short refEnd;
+};
+
 #endif /* INCLUDE_ALIGNMENTKERNEL_H_ */

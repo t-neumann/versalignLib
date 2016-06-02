@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
 									"AAAAAAAA",
 									"AAAAAAAA",
 									"AAAAAAAA",
-									"AAAAAAAA" };
+									"ATATTATA" };
 			char const
 					* reads[] =
 							{
@@ -62,10 +62,10 @@ int main(int argc, char *argv[]) {
 									"AATTTTAA",
 									"AAAATAAA",
 									"TTTTAAAA",
-									"AAATTTAA",
+									"AAAATTTT",
 									"ATATATAT",
 									"TAAAAAAT",
-									"TAAAATTT" };
+									"ATATATAT" };
 
 	int seqNumber = 8;
 
@@ -97,12 +97,18 @@ int main(int argc, char *argv[]) {
 	delete scores; scores = 0;
 
 	SWKernel * kernel = new SWKernel();
-	kernel->set_read_length(max_read_length);
-	kernel->set_reference_length(max_ref_length);
+	kernel->init(max_read_length, max_ref_length);
 
 	Timer timer;
 
 	timer.start();
+
+	Alignment * alignments = new Alignment[seqNumber];
+
+	for (int i = 0; i < seqNumber; ++i) {
+		alignments[i].read = new char[max_read_length + max_ref_length];
+		alignments[i].ref = new char[max_read_length + max_ref_length];
+	}
 
 	for (int i = 0; i < seqNumber; ++i) {
 		char const * const * const read = reads + i;
@@ -117,13 +123,9 @@ int main(int argc, char *argv[]) {
 				<< *score << endl;
 		free(score);
 
-		char * const malloc_read = (char * const)malloc(sizeof(char) * max_read_length * max_ref_length * seqNumber);
-		char * const malloc_ref = (char * const)malloc(sizeof(char) * max_read_length * max_ref_length * seqNumber);
+		kernel->calc_alignment(read, ref, &alignments[i]);
 
-		char * const * const aligned_read = &malloc_read;
-		char * const * const aligned_ref = &malloc_ref;
-
-		kernel->calc_alignment(read, ref, aligned_read, aligned_ref);
+		//cout << "Alignment:" << std::endl << alignments[i].read << std::endl << alignments[i].ref << std::endl;
 
 	}
 
