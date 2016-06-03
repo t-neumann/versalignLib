@@ -40,7 +40,7 @@ void SWKernel::score_alignment(char const * const * const read,
 				short diag = matrix[prev_row * (refLength + 1) + ref_pos];
 				short left = matrix[current_row * (refLength + 1) + ref_pos];
 
-				read[0][read_pos] == ref[0][ref_pos] ? diag += scoreMatch : diag += scoreMismatch;
+				diag += base_score[char_to_score[read[0][read_pos]]][char_to_score[ref[0][ref_pos]]];
 
 				short cur = max(up + scoreGapRef, max(left + scoreGapRead, max(diag, 0)));
 
@@ -78,7 +78,7 @@ void SWKernel::calculate_alignment_matrix(char const * const * const read,
 			short diag = scoreMat[prev_row_score * (refLength + 1) + ref_pos];
 			short left = scoreMat[current_row_score * (refLength + 1) + ref_pos];
 
-			read[0][read_pos] == ref[0][ref_pos] ? diag += scoreMatch : diag += scoreMismatch;
+			diag += base_score[char_to_score[read[0][read_pos]]][char_to_score[ref[0][ref_pos]]];
 
 			short cur = max(up + scoreGapRef, max(left + scoreGapRead, max(diag, 0)));
 
@@ -122,8 +122,10 @@ void SWKernel::calculate_alignment_matrix(char const * const * const read,
 void SWKernel::calc_alignment(char const * const * const read,
 		char const * const * const ref, Alignment * const alignment) {
 
-	alnMat matrix = new char [alnLength];
-	memset(matrix, START, alnLength * sizeof(char));
+	std::cout << "Aln Length:\t" << alnLength << std::endl;
+
+	alnMat matrix = new char [(refLength + 1) * (readLength + 1)];
+	memset(matrix, START, (refLength + 1) * (readLength + 1) * sizeof(char));
 
 	short * best_coordinates = new short[2];
 
@@ -172,17 +174,19 @@ void SWKernel::calc_alignment(char const * const * const read,
 		--aln_pos;
 	}
 
-	std::cout << "\tBacktrack end" << std::endl;
+	alignment->read = new char[alnLength];
+	alignment->ref = new char[alnLength];
 
-	std::cout << "==================" << std::endl;
-	for (int i = 0; i < alnLength; ++i) {
-		std::cout << alignments[i];
-	}
-	std::cout << std::endl;
-	for (int i = alnLength; i < alnLength * 2; ++i) {
-		std::cout << alignments[i];
-	}
-	std::cout << std::endl << "==================" << std::endl;
+	memcpy(alignment->read, alignments, alnLength * sizeof(char));
+	memcpy(alignment->ref, alignments + alnLength, alnLength * sizeof(char));
+
+	alignment->readStart = aln_pos + 1;
+	alignment->refStart = aln_pos + 1;
+
+	alignment->readEnd = alnLength - 1;
+	alignment->refEnd = alnLength - 1;
+
+	std::cout << "\tBacktrack end" << std::endl;
 //
 //
 //

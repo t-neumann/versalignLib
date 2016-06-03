@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
 	char const
 					* refs[] =
 							{
-									"AAAAAAAA",
+									"AA",
 									"AAAAAAAA",
 									"AAAAAAAA",
 									"AAAAAAAA",
@@ -58,13 +58,13 @@ int main(int argc, char *argv[]) {
 			char const
 					* reads[] =
 							{
+									"aa",
 									"AAAAAAAA",
 									"AATTTTAA",
 									"AAAATAAA",
 									"TTTTAAAA",
 									"AAAATTTT",
 									"ATATATAT",
-									"TAAAAAAT",
 									"ATATATAT" };
 
 	int seqNumber = 8;
@@ -103,31 +103,30 @@ int main(int argc, char *argv[]) {
 
 	timer.start();
 
-	Alignment * alignments = new Alignment[seqNumber];
-
-	for (int i = 0; i < seqNumber; ++i) {
-		alignments[i].read = new char[max_read_length + max_ref_length];
-		alignments[i].ref = new char[max_read_length + max_ref_length];
-	}
-
-	for (int i = 0; i < seqNumber; ++i) {
-		char const * const * const read = reads + i;
-		char const * const * const ref = refs + i;
-
-		short * const score = (short * const)malloc(sizeof(short));
-		memset(score, 0, sizeof(short));
-
-		kernel->score_alignment(read, ref, score);
-
-		cout << *(read) << ":\t"
-				<< *score << endl;
-		free(score);
-
-		kernel->calc_alignment(read, ref, &alignments[i]);
-
-		//cout << "Alignment:" << std::endl << alignments[i].read << std::endl << alignments[i].ref << std::endl;
-
-	}
+//	Alignment * alignments = new Alignment[seqNumber];
+//
+//	for (int i = 0; i < seqNumber; ++i) {
+//		char const * const * const read = reads + i;
+//		char const * const * const ref = refs + i;
+//
+//		short * const score = (short * const)malloc(sizeof(short));
+//		memset(score, 0, sizeof(short));
+//
+//		kernel->score_alignment(read, ref, score);
+//
+//		cout << *(read) << ":\t"
+//				<< *score << endl;
+//		free(score);
+//
+//		kernel->calc_alignment(read, ref, &alignments[i]);
+//
+//		std::cout << "==================" << std::endl << "\"";
+//		std::cout << alignments[i].read + alignments[i].readStart;
+//		std::cout << "\"" << std::endl << "\"";
+//		std::cout << alignments[i].ref + alignments[i].refStart;
+//		std::cout << "\"" << std::endl << "==================" << std::endl;
+//
+//	}
 
 	timer.stop();
 
@@ -140,6 +139,19 @@ int main(int argc, char *argv[]) {
 	cout << "Sizeof float " << sizeof(float) << endl;
 	cout << "Sizeof int " << sizeof(int) << endl;
 	cout << "Sizeof short " << sizeof(short) << endl;
+
+	char N = 78;
+	char n = 110;
+
+	char mask = 223;
+
+	char masked = n & mask;
+
+	cout << N << " " << n << " " << mask << " " << masked;
+	// N 01001110 -> 78
+		// n 01101110 -> 110
+
+		// Mask 11011111 -> 223
 
 	return 0;
 }

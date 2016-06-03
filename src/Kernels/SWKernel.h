@@ -26,9 +26,6 @@
 #define DIAG 'd'
 #define START 's'
 
-struct mat_element;
-struct xy_coordinates;
-
 typedef char * alnMat;
 
 // Match anything non AGCTNagctn to 0
@@ -68,9 +65,22 @@ public:
 		scoreMatch = 2;
 		scoreMismatch = -1;
 
-		base_score = {
-				{}
-		}
+		short tmp[SCORE_CASE][SCORE_CASE]= {
+				// non ATGCN
+				{0,0,0,0,0,0},
+				// A
+				{0,scoreMatch,scoreMismatch,scoreMismatch,scoreMismatch,0},
+				// T
+				{0,scoreMismatch,scoreMatch,scoreMismatch,scoreMismatch,0},
+				// C
+				{0,scoreMismatch,scoreMismatch,scoreMatch,scoreMismatch,0},
+				// G
+				{0,scoreMismatch,scoreMismatch,scoreMismatch,scoreMatch,0},
+				// N
+				{0,0,0,0,0,0}
+		};
+		memcpy(base_score, tmp, SCORE_CASE * SCORE_CASE * sizeof(short));
+
 
 	}
 
@@ -79,7 +89,7 @@ public:
 	void init (int const & max_read_length, int const & max_ref_length) {
 		this->readLength = max_read_length;
 		this->refLength = max_ref_length;
-		this->alnLength = (refLength + 1) * (readLength + 1);
+		this->alnLength = refLength + readLength;
 	}
 
 	void set_reference_length(int const & reference_size) {
@@ -104,17 +114,12 @@ private:
 	int refLength;
 	int alnLength;
 
-	int base_score[SCORE_CASE][SCORE_CASE];
+	short base_score[SCORE_CASE][SCORE_CASE];
 
 	short scoreMatch;
 	short scoreMismatch;
 	short scoreGapRead;
 	short scoreGapRef;
-};
-
-struct xy_coordinates {
-	short x;
-	short y;
 };
 
 #endif /* SWKERNEL_H_ */

@@ -38,6 +38,13 @@ public:
 		x_scoreGapRef = short_to_sse(scoreGapRef);
 
 		x_zeros = short_to_sse(0);
+
+		x_A = short_to_sse(65);
+		x_T = short_to_sse(84);
+		x_C = short_to_sse(67);
+		x_G = short_to_sse(71);
+
+		x_UCMask = short_to_sse(223);
 	}
 
 	virtual ~SSEKernel() {}
@@ -81,6 +88,34 @@ private:
 	__m128i x_scoreGapRef;
 
 	__m128i x_zeros;
+
+	__m128i x_A;
+
+
+	// A 01000001 -> 65
+	// a 01100001 -> 97
+
+	__m128i x_T;
+
+	// T 01010100 -> 84
+	// t 01110100 -> 116
+
+	__m128i x_C;
+
+	// C 01000011 -> 67
+	// c 01100011 -> 99
+
+	__m128i x_G;
+
+	// G 01000111 -> 71
+	// g 01100111 -> 103
+
+	// N 01001110 -> 78
+	// n 01101110 -> 110
+
+	// Mask 11011111 -> 223
+
+	__m128i x_UCMask;
 
 };
 
