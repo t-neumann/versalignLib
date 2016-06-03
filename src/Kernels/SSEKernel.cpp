@@ -75,10 +75,10 @@ void SSEKernel::score_alignment (char const * const * const read, char const * c
 		// UC read
 		sse_read_bases = _mm_and_si128(sse_read_bases,x_UCMask);
 
-		std::cout << "Read base:\t";
-		print_sse_char(sse_read_bases);
+		//std::cout << "Read base:\t";
+		//print_sse_char(sse_read_bases);
 
-		__m128i valid_read_base = _mm_or_si128(_mm_and_si128(sse_read_bases,x_C),_mm_or_si128(_mm_and_si128(sse_read_bases,x_G),_mm_or_si128(_mm_and_si128(sse_read_bases,x_T),_mm_and_si128(sse_read_bases,x_A))));
+		__m128i valid_read_base = _mm_or_si128(_mm_cmpeq_epi16(sse_read_bases,x_C),_mm_or_si128(_mm_cmpeq_epi16(sse_read_bases,x_G),_mm_or_si128(_mm_cmpeq_epi16(sse_read_bases,x_T),_mm_cmpeq_epi16(sse_read_bases,x_A))));
 
 		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
 
@@ -110,8 +110,10 @@ void SSEKernel::score_alignment (char const * const * const read, char const * c
 
 			__m128i valid_ref_base = _mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_C),_mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_G),_mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_T),_mm_cmpeq_epi16(sse_ref_bases,x_A))));
 
-			std::cout << "Ref base:\t";
-			print_sse_char(sse_ref_bases);
+			__m128i valid_comp = _mm_and_si128(valid_read_base, valid_ref_base);
+
+			//std::cout << "Ref base:\t";
+			//print_sse_char(sse_ref_bases);
 
 			// match read and ref bases
 			// matches will hold 1, mismatches will hold 0
@@ -119,10 +121,12 @@ void SSEKernel::score_alignment (char const * const * const read, char const * c
 
 			// bitwise and between 0 (mismatches) and match score gives match score only for equal bases
 			// add these to diagonal value
-			diag = _mm_add_epi16(diag, _mm_and_si128(match, x_scoreMatch));
+			diag = _mm_add_epi16(diag, _mm_and_si128(valid_comp,_mm_and_si128(match, x_scoreMatch)));
+			//diag = _mm_add_epi16(diag, _mm_and_si128(match, x_scoreMatch));
 			// bitwise not and between 1 (matches) and mismatch score gives mismatch score only for unequal bases
 			// add these to diagonal value
-			diag = _mm_add_epi16(diag, _mm_andnot_si128(match, x_scoreMismatch));
+			//diag = _mm_add_epi16(diag, _mm_andnot_si128(match, x_scoreMismatch));
+			diag = _mm_add_epi16(diag, _mm_and_si128(valid_comp,_mm_andnot_si128(match, x_scoreMismatch)));
 
 			// Cell value will be max of upper + gap penalty, left + gap penalty, diag + match/mismatch score or 0
 			__m128i cell = _mm_max_epi16(diag, _mm_max_epi16(left, _mm_max_epi16(up, x_zeros)));

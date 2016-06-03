@@ -22,7 +22,7 @@ using std::endl;
 int main(int argc, char *argv[]) {
 
 	/*char const
-				* reads[] =
+	 * reads[] =
 						{
 								"CACACCCACACACCACACCACACACCAGACCCACACCCACACACACACATCCTAAGACTGCCCTAAAACAGCCCTAATCTAACCCTGGCCAACCTGTCTCT",
 								"CACACCCACACACCACACCACACACCAGACCCACACCCACACACACACATCCTAAGACTGCCCTAAAACAGCCCTAATCTAACCCTGGCCAACCTGTCTCT",
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 								"GGGTAAGTTGAGAGACAGGTTGGACAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGTG",
 								"GGGTAAGTTGAGAGACAGGTTGGACAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGTG" };
 		char const
-				* refs[] =
+	 * refs[] =
 						{
 								"GTTGGGTGACACACCCACACACCACACCACACACCAGACCCACACCCACAAACACACATCCTAAGACTGCCCTAAAACTGCCCTAATCTAACCCTGGCCAACCTGTCTCTGTGGTCA",
 								"TCAACTTCCCACACACCACACCACACACCAGACCCACACCCACACACACACATCCTAAGACTGCCCTAAAACAGCCCTAATCTAACCCTGGCCAACCTGTCTCTCCCTCCAT",
@@ -45,27 +45,27 @@ int main(int argc, char *argv[]) {
 								"TATTACCCTGGGGTAAGTTGAGAGACAGGTTGGACAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGTGCCTCCA" };*/
 
 	char const
-					* refs[] =
-							{
-									"AA",
-									"AAAAAAAA",
-									"AAAAAAAA",
-									"AAAAAAAA",
-									"AAAAAAAA",
-									"AAAAAAAA",
-									"AAAAAAAA",
-									"ATATTATA" };
-			char const
-					* reads[] =
-							{
-									"aa",
-									"AAAAAAAA",
-									"AATTTTAA",
-									"AAAATAAA",
-									"TTTTAAAA",
-									"AAAATTTT",
-									"ATATATAT",
-									"ATATATAT" };
+	* refs[] =
+	{
+			"AA",
+			"AAAAAAAA",
+			"AAAAAAAA",
+			"AAAAAAAA",
+			"AAAAAAAA",
+			"AAAAAAAA",
+			"AAAAAAAA",
+			"ATATTATA" };
+	char const
+	* reads[] =
+	{
+			"aa",
+			"AAAAAAAA",
+			"AATTTTAA",
+			"AAAATAAA",
+			"TTTTAAAA",
+			"AAAATTTT",
+			"ATATATAT",
+			"ATATATAT" };
 
 	int seqNumber = 8;
 
@@ -79,15 +79,20 @@ int main(int argc, char *argv[]) {
 
 	ssekernel->set_read_length(max_read_length);
 	ssekernel->set_reference_length(max_ref_length);
-	ssekernel->score_alignment(refs, reads, scores);
 
-//		for (int j = 0; j < maxReadLen; ++j) {
-//			for (int i = 0; i < seqNumber; ++i) {
-//				cout << *(*(reads + i) + j) << std::endl;
-//			}
-//		}
-//
-//		cout << "MaxLen: " << maxReadLen << ", " << maxRefLen << endl;
+	Timer timer;
+
+	timer.start();
+
+	for (int i = 0; i < 10000; ++i) {
+
+		ssekernel->score_alignment(refs, reads, scores);
+
+	}
+
+	timer.stop();
+
+	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
 
 	for (int i = 0; i < seqNumber; ++i) {
 		cout << reads[i] << ":\t" << scores[i] << endl;
@@ -99,38 +104,55 @@ int main(int argc, char *argv[]) {
 	SWKernel * kernel = new SWKernel();
 	kernel->init(max_read_length, max_ref_length);
 
-	Timer timer;
+	for (int i = 0; i < seqNumber; ++i) {
 
-	timer.start();
+		short * const score = (short * const)malloc(sizeof(short));
+		memset(score, 0, sizeof(short));
 
-//	Alignment * alignments = new Alignment[seqNumber];
-//
-//	for (int i = 0; i < seqNumber; ++i) {
-//		char const * const * const read = reads + i;
-//		char const * const * const ref = refs + i;
-//
-//		short * const score = (short * const)malloc(sizeof(short));
-//		memset(score, 0, sizeof(short));
-//
-//		kernel->score_alignment(read, ref, score);
-//
-//		cout << *(read) << ":\t"
-//				<< *score << endl;
-//		free(score);
-//
-//		kernel->calc_alignment(read, ref, &alignments[i]);
-//
-//		std::cout << "==================" << std::endl << "\"";
-//		std::cout << alignments[i].read + alignments[i].readStart;
-//		std::cout << "\"" << std::endl << "\"";
-//		std::cout << alignments[i].ref + alignments[i].refStart;
-//		std::cout << "\"" << std::endl << "==================" << std::endl;
-//
-//	}
+		char const * const * const read = reads + i;
+		char const * const * const ref = refs + i;
 
-	timer.stop();
+		timer.start();
 
-	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() << " ms" << endl;
+		for (int j = 0; j < 10000; ++j) {
+
+			for (int k = 0; k < 8; ++k) {
+
+				kernel->score_alignment(read, ref, score);
+			}
+
+		}
+
+		cout << *(read) << ":\t"
+				<< *score << endl;
+		free(score);
+
+		timer.stop();
+
+		cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
+	}
+
+	Alignment * alignments = new Alignment[seqNumber];
+
+	for (int i = 0; i < seqNumber; ++i) {
+		char const * const * const read = reads + i;
+		char const * const * const ref = refs + i;
+
+		timer.start();
+
+		kernel->calc_alignment(read, ref, &alignments[i]);
+
+		timer.stop();
+
+		cout << "Alignment took " << timer.getElapsedTimeInMicroSec() << " ms" << endl;
+
+		std::cout << "==================" << std::endl << "\"";
+		std::cout << alignments[i].read + alignments[i].readStart;
+		std::cout << "\"" << std::endl << "\"";
+		std::cout << alignments[i].ref + alignments[i].refStart;
+		std::cout << "\"" << std::endl << "==================" << std::endl;
+
+	}
 
 	delete kernel; kernel = 0;
 
@@ -149,9 +171,9 @@ int main(int argc, char *argv[]) {
 
 	cout << N << " " << n << " " << mask << " " << masked;
 	// N 01001110 -> 78
-		// n 01101110 -> 110
+	// n 01101110 -> 110
 
-		// Mask 11011111 -> 223
+	// Mask 11011111 -> 223
 
 	return 0;
 }
