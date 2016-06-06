@@ -20,7 +20,16 @@
 #define align16 __attribute__((aligned(16)))
 #endif
 
+#define SSE_SIZE 8
+
+#define UP 1
+#define LEFT 2
+#define DIAG 3
+#define START 0
+
 #include <emmintrin.h>
+
+typedef __m128i * sse_matrix;
 
 class SSEKernel: public AlignmentKernel {
 
@@ -45,30 +54,38 @@ public:
 		x_G = short_to_sse(71);
 
 		x_UCMask = short_to_sse(223);
+
+		x_p_up = short_to_sse(UP);
+		x_p_left = short_to_sse(LEFT);
+		x_p_diag = short_to_sse(DIAG);
+	}
+
+	void init (int const & max_read_length, int const & max_ref_length) {
+			this->readLength = max_read_length;
+			this->refLength = max_ref_length;
+			this->alnLength = refLength + readLength;
 	}
 
 	virtual ~SSEKernel() {}
 
-	void set_reference_length(int const & reference_size) {
-		this->refLength = reference_size;
-	}
-
-	void set_read_length(int const & read_length) {
-		this->readLength = read_length;
-	}
-
 	void score_alignment(char const * const * const read,
 			char const * const * const ref, short * const scores);
 
+	void calc_alignment(char const * const * const read,
+				char const * const * const ref, Alignment * const alignment);
+
 private:
+
+	void calc_alignment_matrix(char const * const * const read,
+			char const * const * const ref, sse_matrix const matrix, __m128i * const best_coordinates);
 
 	// Short = 2 byte
 	// __m128i fits 128 bits = 8 shorts
 
 	inline __m128i short_to_sse(short x) {
 
-		align16 short buf[8];
-		for (int i = 0; i < 8; ++i)
+		align16 short buf[SSE_SIZE];
+		for (int i = 0; i < SSE_SIZE; ++i)
 			buf[i] = x;
 
 		return _mm_load_si128((__m128i *) buf);
@@ -76,6 +93,7 @@ private:
 
 	int readLength;
 	int refLength;
+	int alnLength;
 
 	short scoreMatch;
 	short scoreMismatch;
@@ -116,6 +134,11 @@ private:
 	// Mask 11011111 -> 223
 
 	__m128i x_UCMask;
+
+	// Pointer directions
+	__m128i x_p_up;
+	__m128i x_p_left;
+	__m128i x_p_diag;
 
 };
 

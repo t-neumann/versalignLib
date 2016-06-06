@@ -114,6 +114,8 @@ void SWKernel::calculate_alignment_matrix(char const * const * const read,
 		++current_row_aln;
 	}
 
+	delete []scoreMat; scoreMat = 0;
+
 	best_coordinates[0] = best_read_pos;
 	best_coordinates[1] = best_ref_pos;
 
@@ -187,10 +189,8 @@ void SWKernel::calc_alignment(char const * const * const read,
 	alignment->refEnd = alnLength - 1;
 
 	std::cout << "\tBacktrack end" << std::endl;
-//
-//
-//
-//	//while()
-//
-//	delete [] matrix; matrix = 0;
+
+	delete [] alignments; alignments = 0;
+	delete [] best_coordinates; best_coordinates = 0;
+	delete [] matrix; matrix = 0;
 }

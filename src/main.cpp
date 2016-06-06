@@ -77,22 +77,27 @@ int main(int argc, char *argv[]) {
 
 	short * scores = new short[seqNumber];
 
-	ssekernel->set_read_length(max_read_length);
-	ssekernel->set_reference_length(max_ref_length);
+	ssekernel->init(max_read_length, max_ref_length);
 
 	Timer timer;
 
 	timer.start();
 
-	for (int i = 0; i < 10000; ++i) {
+	for (int i = 0; i < 1; ++i) {
 
-		ssekernel->score_alignment(refs, reads, scores);
+		//ssekernel->score_alignment(reads, refs, scores);
+		Alignment * alignments = 0;
+		ssekernel->calc_alignment(reads, refs, alignments);
 
 	}
 
 	timer.stop();
 
 	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
+
+	// Premature return for SSE testing
+
+	return 0;
 
 	for (int i = 0; i < seqNumber; ++i) {
 		cout << reads[i] << ":\t" << scores[i] << endl;
