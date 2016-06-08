@@ -29,8 +29,6 @@
 
 #include <emmintrin.h>
 
-typedef __m128i * sse_matrix;
-
 class SSEKernel: public AlignmentKernel {
 
 public:
@@ -77,7 +75,7 @@ public:
 private:
 
 	void calc_alignment_matrix(char const * const * const read,
-			char const * const * const ref, sse_matrix const matrix, __m128i * const best_coordinates);
+			char const * const * const ref, short * const matrix, short * const best_coordinates);
 
 	// Short = 2 byte
 	// __m128i fits 128 bits = 8 shorts
