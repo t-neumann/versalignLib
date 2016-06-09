@@ -119,19 +119,22 @@ void SSEKernel::calc_alignment_matrix(char const * const * const read,
 
 			// up
 			match = _mm_cmpeq_epi16(cell, up);
-			pointer = _mm_add_epi16(pointer, _mm_and_si128(match, x_p_up));
+			pointer = _mm_max_epi16(pointer, _mm_and_si128(match, x_p_up));
 
 			// left
 			match = _mm_cmpeq_epi16(cell, left);
-			pointer = _mm_add_epi16(pointer, _mm_and_si128(match, x_p_left));
+			pointer = _mm_max_epi16(pointer, _mm_and_si128(match, x_p_left));
 
 			// diag
 			// Set diag pointer only if comparison of ATGC
 			match =  _mm_and_si128(valid_comp,_mm_cmpeq_epi16(cell, diag));
-			pointer = _mm_add_epi16(pointer, _mm_and_si128(match, x_p_diag));
+			pointer = _mm_max_epi16(pointer, _mm_and_si128(match, x_p_diag));
 
 			// Store score and pointer
 			_mm_store_si128((__m128i *) (scoreMat + SSE_SIZE * (current_row_score * (refLength + 1) + ref_pos + 1)), cell);
+
+			std::cout << __m128i_toString<short>(cell) << std::endl;
+
 			_mm_store_si128((__m128i *) (matrix + SSE_SIZE * (current_row_aln * (refLength + 1) + ref_pos + 1)), pointer);
 
 			// Store read and ref positions if new max score
@@ -153,6 +156,8 @@ void SSEKernel::calc_alignment_matrix(char const * const * const read,
 			//std::cout << "ref pos " << __m128i_toString<short>(sse_ref_pos);
 
 		}
+
+		std::cout << std::endl;
 		prev_row_score = current_row_score;
 		(++current_row_score) &= 1;
 
@@ -163,6 +168,8 @@ void SSEKernel::calc_alignment_matrix(char const * const * const read,
 		//std::cout << __m128i_toString<short>(sse_read_pos);
 
 	}
+
+	std::cout << "Max scores: " << __m128i_toString<short>(max_score);
 
 	free(scoreMat);
 
@@ -221,21 +228,21 @@ void SSEKernel::calc_alignment(char const * const * const read,
 		short backtrack = *(matrix + SSE_SIZE * ((read_pos + 1) * (refLength + 1) + ref_pos + 1) + SSE_register);
 
 		while (backtrack != START) {
-			//std::cout << "Cur backtrack " << backtrack << std::endl;
-
-			//char a;
-			//std::cin >> a;
+			std::cout << "Cur backtrack " << backtrack << std::endl;
 
 			if (backtrack == UP) {
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = '-';
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = read[SSE_register][read_pos--];
 			}
-			//std::cout << "Read base:\t" << read[SSE_register] + read_pos;
+
+			char base = *(read[SSE_register] + read_pos);
+			std::cout << "Read base:\t" << base << std::endl;
 			if (backtrack == LEFT) {
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = '-';
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = ref[SSE_register][ref_pos--];
 			}
-			//std::cout << "Ref base:\t" << ref[SSE_register] + ref_pos;
+			base = *(ref[SSE_register] + ref_pos);
+			std::cout << "Ref base:\t" << base << std::endl;
 			if (backtrack == DIAG) {
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = read[SSE_register][read_pos--];
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = ref[SSE_register][ref_pos--];
@@ -243,6 +250,9 @@ void SSEKernel::calc_alignment(char const * const * const read,
 
 			backtrack = *(matrix + SSE_SIZE * ((read_pos + 1) * (refLength + 1) + ref_pos + 1) + SSE_register);
 			--aln_pos;
+
+			std::cout << "Cur read pos:\t" << read_pos << std::endl << "Cur refpos:\t" << ref_pos << std::endl;
+
 		}
 
 		alignment[SSE_register].read = new char[alnLength];
@@ -257,13 +267,11 @@ void SSEKernel::calc_alignment(char const * const * const read,
 		alignment[SSE_register].readEnd = alnLength - 1;
 		alignment[SSE_register].refEnd = alnLength - 1;
 
-//		std::cout << "==================" << std::endl << "\"";
-//		std::cout << alignment[SSE_register].read + alignment[SSE_register].readStart;
-//		std::cout << "\"" << std::endl << "\"";
-//		std::cout << alignment[SSE_register].ref + alignment[SSE_register].refStart;
-//		std::cout << "\"" << std::endl << "==================" << std::endl;
-
-
+		std::cout << "==================" << std::endl << "\"";
+		std::cout << alignment[SSE_register].read + alignment[SSE_register].readStart;
+		std::cout << "\"" << std::endl << "\"";
+		std::cout << alignment[SSE_register].ref + alignment[SSE_register].refStart;
+		std::cout << "\"" << std::endl << "==================" << std::endl;
 	}
 
 

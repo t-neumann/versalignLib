@@ -35,7 +35,7 @@ public:
 	SSEKernel() {
 
 		scoreGapRead = -3;
-		scoreGapRef = -3;
+		scoreGapRef = -2;
 		scoreMatch = 2;
 		scoreMismatch = -1;
 
