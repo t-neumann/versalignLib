@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
 	char const
 	* refs[] =
 	{
-			"AA",
+			"TTAATTTT",
 			"AAAAAAAA",
 			"AAAAAAAA",
 			"AAAAAAAA",
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 	char const
 	* reads[] =
 	{
-			"aaaaaaaa",
+			"aa",
 			"AAAAAAAA",
 			"AATTTTAA",
 			"AAAATAAA",

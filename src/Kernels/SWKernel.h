@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <cstring>
 #include <ctime>
+#include <climits>
 
 #define ASCII_ALPHABET 256
 #define SCORE_CASE 6

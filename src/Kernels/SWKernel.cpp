@@ -157,8 +157,12 @@ void SWKernel::calculate_alignment_matrix(char const * const * const read,
 void SWKernel::calculate_alignment_matrix_needleman_wunsch(char const * const * const read,
 		char const * const * const ref, alnMat const matrix, short * const best_coordinates) {
 
-	short max_read_pos = -1;
-	short max_ref_pos = -1;
+	for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
+		matrix[ref_pos + 1] = LEFT;
+	}
+
+	short max_read_pos = SHRT_MIN;
+	short max_ref_pos = SHRT_MIN;
 
 	short prev_row_score = 0;
 	short current_row_score = 1;
@@ -167,21 +171,21 @@ void SWKernel::calculate_alignment_matrix_needleman_wunsch(char const * const * 
 
 	short * scoreMat = new short[(refLength + 1) * 2]();
 
+	short rowMax = SHRT_MIN;
+	short colMax = SHRT_MIN;
+
+	short rowMaxIndex = 0;
+	short colMaxIndex = 0;
+
 	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
+
+		matrix[current_row_aln * (refLength + 1)] = UP;
 
 		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
 
 			short up = scoreMat[prev_row_score * (refLength + 1) + ref_pos + 1];
 			short diag = scoreMat[prev_row_score * (refLength + 1) + ref_pos];
 			short left = scoreMat[current_row_score * (refLength + 1) + ref_pos];
-
-			// 0 score means forbidden char
-			if (max_read_pos < 0 && char_to_score[read[0][read_pos]] == 0) {
-				max_read_pos = read_pos;
-			}
-			if (max_ref_pos < 0 && char_to_score[ref[0][ref_pos]] == 0) {
-				max_ref_pos = ref_pos;
-			}
 
 			diag += base_score[char_to_score[read[0][read_pos]]][char_to_score[ref[0][ref_pos]]];
 
@@ -199,6 +203,25 @@ void SWKernel::calculate_alignment_matrix_needleman_wunsch(char const * const * 
 				pointer = LEFT;
 			}
 
+			// 0 score means forbidden char
+			if (max_read_pos < 0 && char_to_score[read[0][read_pos]] == 0) {
+				max_read_pos = read_pos;
+				std::cout << "Skipping at " << read_pos << std::endl;
+			}
+			if (max_ref_pos < 0 && char_to_score[ref[0][ref_pos]] == 0) {
+				max_ref_pos = ref_pos;
+			}
+
+			if (cur > rowMax && (max_read_pos == read_pos || read_pos == readLength - 1)) {
+				rowMax = cur;
+				rowMaxIndex = ref_pos;
+			}
+
+			if (cur > colMax && (max_ref_pos == ref_pos || ref_pos == refLength - 1)) {
+				colMax = cur;
+				colMaxIndex = read_pos;
+			}
+
 			matrix[current_row_aln * (refLength + 1) + ref_pos + 1] = pointer;
 
 			std::cout << cur << " ";
@@ -213,8 +236,24 @@ void SWKernel::calculate_alignment_matrix_needleman_wunsch(char const * const * 
 
 	delete []scoreMat; scoreMat = 0;
 
-	max_read_pos < 0 ? best_coordinates[0] = readLength - 1 : best_coordinates[0] = max_read_pos;
-	max_ref_pos < 0 ? best_coordinates[1] = refLength - 1: best_coordinates[1] = max_ref_pos;
+	if (max_read_pos > 0 && max_ref_pos > 0) {
+		best_coordinates[0] = max_read_pos;
+		best_coordinates[1] = max_ref_pos;
+	} else if (max_read_pos > 0) {
+		best_coordinates[0] = max_read_pos;
+		best_coordinates[1] = rowMaxIndex;
+	} else if (max_ref_pos > 0) {
+		best_coordinates[0] = colMaxIndex;
+		best_coordinates[1] = max_ref_pos;
+	}
+
+	if (colMax > rowMax) {
+		best_coordinates[0] = colMaxIndex;
+		best_coordinates[1] = std::min(abs(max_ref_pos),refLength - 1);
+	} else {
+		best_coordinates[0] = std::min(abs(max_read_pos),readLength - 1);
+		best_coordinates[1] = rowMaxIndex;
+	}
 }
 
 void SWKernel::calc_alignment(char const * const * const read,
