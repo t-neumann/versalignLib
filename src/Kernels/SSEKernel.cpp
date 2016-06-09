@@ -132,22 +132,20 @@ void SSEKernel::calc_alignment_matrix(char const * const * const read,
 
 			// Store score and pointer
 			_mm_store_si128((__m128i *) (scoreMat + SSE_SIZE * (current_row_score * (refLength + 1) + ref_pos + 1)), cell);
-
-			std::cout << __m128i_toString<short>(cell) << std::endl;
-
 			_mm_store_si128((__m128i *) (matrix + SSE_SIZE * (current_row_aln * (refLength + 1) + ref_pos + 1)), pointer);
 
 			// Store read and ref positions if new max score
 			match = _mm_cmpgt_epi16(cell, max_score);
 
-			best_read_pos = _mm_max_epi16(best_read_pos,_mm_and_si128(match, sse_read_pos));
-			best_ref_pos = _mm_max_epi16(best_ref_pos,_mm_and_si128(match, sse_ref_pos));
+//			std::cout << "Scores:\t" << __m128i_toString<short>(cell) << std::endl;
+//			std::cout << "Max:\t" << __m128i_toString<short>(max_score) << std::endl;
+//			std::cout << "Match:\t" << __m128i_toString<short>(match) << std::endl;
+
+			best_read_pos = _mm_max_epi16(_mm_andnot_si128(match, best_read_pos),_mm_and_si128(match, sse_read_pos));
+			best_ref_pos = _mm_max_epi16(_mm_andnot_si128(match, best_ref_pos),_mm_and_si128(match, sse_ref_pos));
 
 			//std::cout << "Best read pos\t" << __m128i_toString<short>(best_read_pos);
 			//std::cout << "Best ref pos\t" << __m128i_toString<short>(best_ref_pos);
-
-			//char a;
-			//std::cin >> a;
 
 			max_score = _mm_max_epi16(cell, max_score);
 
@@ -156,8 +154,6 @@ void SSEKernel::calc_alignment_matrix(char const * const * const read,
 			//std::cout << "ref pos " << __m128i_toString<short>(sse_ref_pos);
 
 		}
-
-		std::cout << std::endl;
 		prev_row_score = current_row_score;
 		(++current_row_score) &= 1;
 
@@ -169,7 +165,7 @@ void SSEKernel::calc_alignment_matrix(char const * const * const read,
 
 	}
 
-	std::cout << "Max scores: " << __m128i_toString<short>(max_score);
+//	std::cout << "Max scores: " << __m128i_toString<short>(max_score);
 
 	free(scoreMat);
 
@@ -213,36 +209,39 @@ void SSEKernel::calc_alignment(char const * const * const read,
 	__m128i best_read_positions = _mm_load_si128((__m128i *) best_coordinates);
 	__m128i best_ref_positions = _mm_load_si128((__m128i *) best_coordinates + 1);
 
-	std::cout << "Best read: " << __m128i_toString<short>(best_read_positions);
-	std::cout << std::endl << "Best ref: " << __m128i_toString<short>(best_ref_positions);
-	std::cout << std::endl;
+//	std::cout << "Best read: " << __m128i_toString<short>(best_read_positions);
+//	std::cout << std::endl << "Best ref: " << __m128i_toString<short>(best_ref_positions);
+//	std::cout << std::endl;
 
 	for (int SSE_register = 0; SSE_register < SSE_SIZE; ++SSE_register) {
-		std::cout << "register " << SSE_register << std::endl;
+//		std::cout << "register " << SSE_register << std::endl;
 		short read_pos = *(best_coordinates + SSE_register);
 		short ref_pos = *(best_coordinates + SSE_SIZE + SSE_register);
-		std::cout << "Cur read_pos " << read_pos << " Cur ref_pos " << ref_pos << std::endl;
+//		std::cout << "Cur read_pos " << read_pos << " Cur ref_pos " << ref_pos << std::endl;
 
 		int aln_pos = alnLength - 2;
+
+		alignments[(SSE_register * alnLength * 2) + alnLength - 1] = '\0';
+		alignments[(SSE_register * alnLength * 2) + (2 * alnLength) - 1] = '\0';
 
 		short backtrack = *(matrix + SSE_SIZE * ((read_pos + 1) * (refLength + 1) + ref_pos + 1) + SSE_register);
 
 		while (backtrack != START) {
-			std::cout << "Cur backtrack " << backtrack << std::endl;
+//			std::cout << "Cur backtrack " << backtrack << std::endl;
 
 			if (backtrack == UP) {
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = '-';
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = read[SSE_register][read_pos--];
 			}
 
-			char base = *(read[SSE_register] + read_pos);
-			std::cout << "Read base:\t" << base << std::endl;
+//			char base = *(read[SSE_register] + read_pos);
+//			std::cout << "Read base:\t" << base << std::endl;
 			if (backtrack == LEFT) {
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = '-';
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = ref[SSE_register][ref_pos--];
 			}
-			base = *(ref[SSE_register] + ref_pos);
-			std::cout << "Ref base:\t" << base << std::endl;
+//			base = *(ref[SSE_register] + ref_pos);
+//			std::cout << "Ref base:\t" << base << std::endl;
 			if (backtrack == DIAG) {
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = read[SSE_register][read_pos--];
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = ref[SSE_register][ref_pos--];
@@ -251,7 +250,7 @@ void SSEKernel::calc_alignment(char const * const * const read,
 			backtrack = *(matrix + SSE_SIZE * ((read_pos + 1) * (refLength + 1) + ref_pos + 1) + SSE_register);
 			--aln_pos;
 
-			std::cout << "Cur read pos:\t" << read_pos << std::endl << "Cur refpos:\t" << ref_pos << std::endl;
+//			std::cout << "Cur read pos:\t" << read_pos << std::endl << "Cur refpos:\t" << ref_pos << std::endl;
 
 		}
 
@@ -266,28 +265,11 @@ void SSEKernel::calc_alignment(char const * const * const read,
 
 		alignment[SSE_register].readEnd = alnLength - 1;
 		alignment[SSE_register].refEnd = alnLength - 1;
-
-		std::cout << "==================" << std::endl << "\"";
-		std::cout << alignment[SSE_register].read + alignment[SSE_register].readStart;
-		std::cout << "\"" << std::endl << "\"";
-		std::cout << alignment[SSE_register].ref + alignment[SSE_register].refStart;
-		std::cout << "\"" << std::endl << "==================" << std::endl;
 	}
 
-
-
-//		alignment->ref = new char[alnLength];
-//
-//		memcpy(alignment->read, alignments, alnLength * sizeof(char));
-//		memcpy(alignment->ref, alignments + alnLength, alnLength * sizeof(char));
-//
-//		alignment->readStart = aln_pos + 1;
-//		alignment->refStart = aln_pos + 1;
-//
-//		alignment->readEnd = alnLength - 1;
-//		alignment->refEnd = alnLength - 1;
-//
-//		std::cout << "\tBacktrack end" << std::endl;
+	delete []alignments; alignments = 0;
+	free(best_coordinates);
+	free(matrix);
 }
 
 

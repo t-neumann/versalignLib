@@ -103,12 +103,21 @@ public:
 	virtual void score_alignment(char const * const * const read,
 			char const * const * const ref, short * const scores);
 
+	virtual void score_alignment_needleman_wunsch(char const * const * const read,
+				char const * const * const ref, short * const scores);
+
 	virtual void calc_alignment(char const * const * const read,
+			char const * const * const ref, Alignment * const alignment);
+
+	virtual void calc_alignment_needleman_wunsch(char const * const * const read,
 			char const * const * const ref, Alignment * const alignment);
 
 private:
 
 	void calculate_alignment_matrix(char const * const * const read,
+			char const * const * const ref, alnMat const matrix, short * const best_coordinates);
+
+	void calculate_alignment_matrix_needleman_wunsch(char const * const * const read,
 			char const * const * const ref, alnMat const matrix, short * const best_coordinates);
 	int readLength;
 	int refLength;

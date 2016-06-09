@@ -56,6 +56,40 @@ void SWKernel::score_alignment(char const * const * const read,
 	memset(scores, max_score, 1);
 }
 
+void SWKernel::score_alignment_needleman_wunsch(char const * const * const read,
+		char const * const * const ref, short * const scores) {
+
+	short * matrix = new short[(refLength + 1) * 2]();
+
+	int prev_row = 0;
+	int current_row = 1;
+
+	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
+
+			for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
+
+				short up = matrix[prev_row * (refLength + 1) + ref_pos + 1];
+				short diag = matrix[prev_row * (refLength + 1) + ref_pos];
+				short left = matrix[current_row * (refLength + 1) + ref_pos];
+
+				diag += base_score[char_to_score[read[0][read_pos]]][char_to_score[ref[0][ref_pos]]];
+
+				short cur = max(up + scoreGapRef, max(left + scoreGapRead, diag));
+
+				matrix[current_row * (refLength + 1) + ref_pos + 1] = cur;
+
+				std::cout << cur << " ";
+			}
+			std::cout << std::endl;
+			prev_row = current_row;
+			(++current_row) &= 1;
+		}
+
+	memset(scores, matrix[prev_row * (refLength + 1) + refLength], 1);
+
+	delete [] matrix; matrix = 0;
+}
+
 void SWKernel::calculate_alignment_matrix(char const * const * const read,
 		char const * const * const ref, alnMat const matrix, short * const best_coordinates) {
 
@@ -118,7 +152,69 @@ void SWKernel::calculate_alignment_matrix(char const * const * const read,
 
 	best_coordinates[0] = best_read_pos;
 	best_coordinates[1] = best_ref_pos;
+}
 
+void SWKernel::calculate_alignment_matrix_needleman_wunsch(char const * const * const read,
+		char const * const * const ref, alnMat const matrix, short * const best_coordinates) {
+
+	short max_read_pos = -1;
+	short max_ref_pos = -1;
+
+	short prev_row_score = 0;
+	short current_row_score = 1;
+
+	short current_row_aln = 1;
+
+	short * scoreMat = new short[(refLength + 1) * 2]();
+
+	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
+
+		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
+
+			short up = scoreMat[prev_row_score * (refLength + 1) + ref_pos + 1];
+			short diag = scoreMat[prev_row_score * (refLength + 1) + ref_pos];
+			short left = scoreMat[current_row_score * (refLength + 1) + ref_pos];
+
+			// 0 score means forbidden char
+			if (max_read_pos < 0 && char_to_score[read[0][read_pos]] == 0) {
+				max_read_pos = read_pos;
+			}
+			if (max_ref_pos < 0 && char_to_score[ref[0][ref_pos]] == 0) {
+				max_ref_pos = ref_pos;
+			}
+
+			diag += base_score[char_to_score[read[0][read_pos]]][char_to_score[ref[0][ref_pos]]];
+
+			short cur = max(up + scoreGapRef, max(left + scoreGapRead, diag));
+
+			scoreMat[current_row_score * (refLength + 1) + ref_pos + 1] = cur;
+
+			char pointer = START;
+
+			if (cur == diag) {
+				pointer = DIAG;
+			} else if (cur == up + scoreGapRef) {
+				pointer = UP;
+			} else if (cur == left + scoreGapRead) {
+				pointer = LEFT;
+			}
+
+			matrix[current_row_aln * (refLength + 1) + ref_pos + 1] = pointer;
+
+			std::cout << cur << " ";
+		}
+		std::cout << std::endl;
+
+		prev_row_score = current_row_score;
+		(++current_row_score) &= 1;
+
+		++current_row_aln;
+	}
+
+	delete []scoreMat; scoreMat = 0;
+
+	max_read_pos < 0 ? best_coordinates[0] = readLength - 1 : best_coordinates[0] = max_read_pos;
+	max_ref_pos < 0 ? best_coordinates[1] = refLength - 1: best_coordinates[1] = max_ref_pos;
 }
 
 void SWKernel::calc_alignment(char const * const * const read,
@@ -192,5 +288,82 @@ void SWKernel::calc_alignment(char const * const * const read,
 
 	delete [] alignments; alignments = 0;
 	delete [] best_coordinates; best_coordinates = 0;
+	delete [] matrix; matrix = 0;
+}
+
+void SWKernel::calc_alignment_needleman_wunsch(char const * const * const read,
+		char const * const * const ref, Alignment * const alignment) {
+
+	std::cout << "Aln Length:\t" << alnLength << std::endl;
+
+	alnMat matrix = new char [(refLength + 1) * (readLength + 1)];
+	memset(matrix, START, (refLength + 1) * (readLength + 1) * sizeof(char));
+
+	short * max_coordinates = new short[2];
+
+	std::cout << "Score matrix" << std::endl;
+
+	calculate_alignment_matrix_needleman_wunsch(read, ref, matrix, max_coordinates);
+
+	std::cout << "Matrix:" << std::endl;
+	for (int i = 0; i < readLength + 1; ++i) {
+		for (int j = 0; j < refLength + 1; ++j) {
+			std::cout << matrix[i * (refLength + 1) + j] << " ";
+		}
+		std::cout << std::endl;
+	}
+
+	char * alignments = new char[alnLength * 2];
+
+	int read_pos = max_coordinates[0];
+	int ref_pos = max_coordinates[1];
+
+	std::cout << "Best read: " << read_pos << std::endl << "Best ref: " << ref_pos << std::endl;
+
+	int aln_pos = alnLength - 2;
+
+	char backtrack = matrix[(read_pos + 1) * (refLength + 1) + ref_pos + 1];
+
+	std::cout << "Backtrack start:\t";
+
+	alignments[alnLength - 1] = '\0';
+	alignments[2 * alnLength - 1] = '\0';
+
+	while(backtrack != START) {
+
+		std::cout << backtrack;
+
+		if (backtrack == UP) {
+			alignments[alnLength + aln_pos] = '-';
+			alignments[aln_pos] = read[0][read_pos--];
+		}
+		if (backtrack == LEFT) {
+			alignments[aln_pos] = '-';
+			alignments[alnLength + aln_pos] = ref[0][ref_pos--];
+		}
+		if (backtrack == DIAG) {
+			alignments[aln_pos] = read[0][read_pos--];
+			alignments[alnLength + aln_pos] = ref[0][ref_pos--];
+		}
+		backtrack = matrix[(read_pos + 1) * (refLength + 1) + ref_pos + 1];
+		--aln_pos;
+	}
+
+	alignment->read = new char[alnLength];
+	alignment->ref = new char[alnLength];
+
+	memcpy(alignment->read, alignments, alnLength * sizeof(char));
+	memcpy(alignment->ref, alignments + alnLength, alnLength * sizeof(char));
+
+	alignment->readStart = aln_pos + 1;
+	alignment->refStart = aln_pos + 1;
+
+	alignment->readEnd = alnLength - 1;
+	alignment->refEnd = alnLength - 1;
+
+	std::cout << "\tBacktrack end" << std::endl;
+
+	delete [] alignments; alignments = 0;
+	delete [] max_coordinates; max_coordinates = 0;
 	delete [] matrix; matrix = 0;
 }
