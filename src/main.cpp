@@ -13,7 +13,7 @@
 #include <string>
 
 #define READ_PAD '\0'
-#define REF_PAD '$'
+#define REF_PAD '\0'
 
 using std::cout;
 using std::string;
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
 	for (int i = 0; i < 1; ++i) {
 
 		//ssekernel->score_alignment(reads, refs, scores);
-		Alignment * alignments = 0;
+		Alignment * alignments = new Alignment[seqNumber];
 		ssekernel->calc_alignment(reads, refs, alignments);
 
 	}
