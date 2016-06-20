@@ -44,14 +44,37 @@ int main(int argc, char *argv[]) {
 								"TCCATTAAAGTTGAGAGACAGGTTGGACAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGTGCCCTGCCTG",
 								"TATTACCCTGGGGTAAGTTGAGAGACAGGTTGGACAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGTGCCTCCA" };*/
 
+//	char const
+//	* refs[] =
+//	{
+//			"TTAATTTT",
+//			"AAAAAAAA",
+//			"AAAAAAAA",
+//			"AAAAAAAA",
+//			"AAAAAAAA",
+//			"AAAAAAAA",
+//			"AAAAAAAA",
+//			"ATATTATA" };
+//	char const
+//	* reads[] =
+//	{
+//			"aa",
+//			"AAAAAAAA",
+//			"AATTTTAA",
+//			"AAAATAAA",
+//			"TTTTAAAA",
+//			"AAAATTTT",
+//			"ATATATAT",
+//			"ATATATAT" };
+
 	char const
 	* refs[] =
 	{
-			"TTAATTTT",
-			"AAAAAAAA",
-			"AAAAAAAA",
-			"AAAAAAAA",
-			"AAAAAAAA",
+			"TTTAA",
+			"TTTGGCCTT",
+			"GGGGGTTTT",
+			"AACCCCCCAA",
+			"ATGC",
 			"AAAAAAAA",
 			"AAAAAAAA",
 			"ATATTATA" };
@@ -59,10 +82,10 @@ int main(int argc, char *argv[]) {
 	* reads[] =
 	{
 			"aa",
-			"AAAAAAAA",
-			"AATTTTAA",
-			"AAAATAAA",
-			"TTTTAAAA",
+			"GGCC",
+			"TTTTAAA",
+			"AACCGGCCAA",
+			"ATGC",
 			"AAAATTTT",
 			"ATATATAT",
 			"ATATATAT" };
