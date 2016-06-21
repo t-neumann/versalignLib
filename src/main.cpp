@@ -67,28 +67,52 @@ int main(int argc, char *argv[]) {
 //			"ATATATAT",
 //			"ATATATAT" };
 
-	char const
-	* refs[] =
-	{
-			"TTTAA",
-			"TTTGGCCTT",
-			"GGGGGTTTT",
-			"AACCCCCCAA",
-			"ATGC",
-			"AAAAAAAA",
-			"AAAAAAAA",
-			"ATATTATA" };
+//	char const
+//	* refs[] =
+//	{
+//			"TTTAA",
+//			"TTTGGCCTT",
+//			"GGGGGTTTT",
+//			"AACCCCCCAA",
+//			"ATGC",
+//			"AAAAAAAA",
+//			"AAAAAAAA",
+//			"ATATTATA" };
+//	char const
+//	* reads[] =
+//	{
+//			"aa",
+//			"GGCC",
+//			"TTTTAAA",
+//			"AACCGGCCAA",
+//			"ATGC",
+//			"AAAATTTT",
+//			"ATATATAT",
+//			"ATATATAT" };
+
 	char const
 	* reads[] =
 	{
-			"aa",
-			"GGCC",
-			"TTTTAAA",
-			"AACCGGCCAA",
-			"ATGC",
-			"AAAATTTT",
-			"ATATATAT",
+			"AGGGGGGA",
+			"AATTTTGCC",
+			"TTTTTAA",
+			"ATAGATAGATAG",
+			"AGCAGTAC",
+			"AGAGAGAG",
+			"",
 			"ATATATAT" };
+
+	char const
+	* refs[] =
+	{
+			"AGCAGATGAGGGCGGATAGC",
+			"TTTTGCCAACGCATGGCAGA",
+			"ATGACGACGCAGTGCTTTTT",
+			"GCAATAGAATAGATAGTGGT",
+			"TAGCATCAAGCAGTACTACA",
+			"TCTCTCTCTCTCTCTCTCTC",
+			"AGCAGATGACATGCATGCAA",
+			"" };
 
 	int seqNumber = 8;
 
