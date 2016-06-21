@@ -69,13 +69,22 @@ public:
 	void score_alignment(char const * const * const read,
 			char const * const * const ref, short * const scores);
 
+	void score_alignment_needleman_wunsch(char const * const * const read,
+				char const * const * const ref, short * const scores);
+
 	void calc_alignment(char const * const * const read,
+				char const * const * const ref, Alignment * const alignment);
+
+	virtual void calc_alignment_needleman_wunsch(char const * const * const read,
 				char const * const * const ref, Alignment * const alignment);
 
 private:
 
 	void calc_alignment_matrix(char const * const * const read,
 			char const * const * const ref, short * const matrix, short * const best_coordinates);
+
+	void calculate_alignment_matrix_needleman_wunsch(char const * const * const read,
+			char const * const * const ref, alnMat const matrix, short * const best_coordinates);
 
 	// Short = 2 byte
 	// __m128i fits 128 bits = 8 shorts
@@ -87,6 +96,11 @@ private:
 			buf[i] = x;
 
 		return _mm_load_si128((__m128i *) buf);
+	}
+
+	inline __m128i _mm_blendv_si128 (__m128i x, __m128i y, __m128i mask) {
+		// Replace bit in x with bit in y when matching bit in mask is set:
+		return _mm_or_si128(_mm_andnot_si128(mask, x), _mm_and_si128(mask, y));
 	}
 
 	int readLength;

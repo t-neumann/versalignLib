@@ -64,6 +64,8 @@ void SWKernel::score_alignment_needleman_wunsch(char const * const * const read,
 	int prev_row = 0;
 	int current_row = 1;
 
+	short globalMax = 0;
+
 	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
 
 		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
@@ -81,11 +83,18 @@ void SWKernel::score_alignment_needleman_wunsch(char const * const * const read,
 			std::cout << cur << " ";
 		}
 		std::cout << std::endl;
+
+		globalMax = max(globalMax, matrix[current_row * (refLength + 1) + refLength]);
+
 		prev_row = current_row;
 		(++current_row) &= 1;
 	}
 
-	memset(scores, matrix[prev_row * (refLength + 1) + refLength], 1);
+	for (int ref_pos = 0; ref_pos < refLength + 1; ++ref_pos) {
+		globalMax = max(globalMax, matrix[prev_row * (refLength + 1) + ref_pos]);
+	}
+
+	memset(scores, globalMax, 1);
 
 	delete [] matrix; matrix = 0;
 }

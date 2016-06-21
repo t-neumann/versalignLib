@@ -174,6 +174,275 @@ void SSEKernel::calc_alignment_matrix(char const * const * const read,
 
 }
 
+void SSEKernel::calculate_alignment_matrix_needleman_wunsch(char const * const * const read,
+		char const * const * const ref, alnMat const matrix, short * const best_coordinates) {
+
+	// Tracking positions where invalid characters start
+	__m128i max_read_pos = short_to_sse(readLength - 1);
+	__m128i max_ref_pos = short_to_sse(refLength - 1);
+
+	// Tracking rowwise maxima
+	__m128i rowMax = short_to_sse(SHRT_MIN);
+	__m128i rowMaxIndex = x_zeros;
+
+	// Tracking global maxima
+	__m128i globalRowMax = short_to_sse(SHRT_MIN);
+	__m128i globalRowMaxIndex = short_to_sse(-1);
+
+	// Tracking best read and ref positions
+	__m128i best_read_pos = x_zeros;
+	__m128i best_ref_pos = x_zeros;
+	__m128i max_score = x_zeros;
+
+	// Scoring matrix indices
+	short prev_row_score = 0;
+	short current_row_score = 1;
+
+	// Alignment matrix index
+	short current_row_aln = 1;
+
+	short * scoreMat = 0;
+
+	malloc16(scoreMat, sizeof(short) * (refLength + 1) * SCORING_ROWS * SSE_SIZE,16);
+	memset(scoreMat, 0, sizeof(short) * (refLength + 1) * SCORING_ROWS * SSE_SIZE);
+
+	// SSE conversion array for current read and ref bases
+	align16 short read_bases [SSE_SIZE];
+	align16 short ref_bases  [SSE_SIZE];
+
+	// holds current read and ref base for SSE instruction
+	__m128i sse_read_bases;
+	__m128i sse_ref_bases;
+
+	// holds current read and ref positions
+	__m128i sse_read_pos = x_zeros;
+	__m128i sse_ref_pos = x_zeros;
+
+	// holds 1 for increment
+	__m128i see_increment = short_to_sse(1);
+
+	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
+
+		sse_ref_pos = x_zeros;
+
+		// load read base
+		for (int base = 0; base < SSE_SIZE; ++base) {
+			read_bases[base] = *(read[base] + read_pos);
+		}
+
+		sse_read_bases = _mm_load_si128((__m128i const *) read_bases);
+
+		// UC read
+		sse_read_bases = _mm_and_si128(sse_read_bases,x_UCMask);
+
+		__m128i valid_read_base = _mm_or_si128(_mm_cmpeq_epi16(sse_read_bases,x_C),_mm_or_si128(_mm_cmpeq_epi16(sse_read_bases,x_G),_mm_or_si128(_mm_cmpeq_epi16(sse_read_bases,x_T),_mm_cmpeq_epi16(sse_read_bases,x_A))));
+
+		// First alignment column is always UP
+		_mm_store_si128((__m128i *) (matrix + SSE_SIZE * (current_row_aln * (refLength + 1))), x_p_up);
+		// First score column is always continued gap-ref score
+		_mm_store_si128((__m128i *) (scoreMat + SSE_SIZE * (current_row_score * (refLength + 1))), short_to_sse((read_pos + 1) * scoreGapRef));
+
+		// if max_readpos == readLength - 1 AND read char is invalid -> max_read_pos = read_pos - 1
+		max_read_pos = _mm_blendv_si128(max_read_pos, _mm_sub_epi16(sse_read_pos,see_increment), _mm_and_si128(_mm_cmpeq_epi16(max_read_pos, short_to_sse(readLength - 1)),valid_read_base));
+
+		// Save previous row max if read ends prematurely
+		// if max_readpos + 1 == read_pos -> globalRowMax = rowMax; globalRowMaxIndex = rowMaxIndex;
+
+		if (max_read_pos + 1 == read_pos) {
+			globalRowMax = rowMax;
+			globalRowMaxIndex = rowMaxIndex;
+		}
+
+		rowMax = scoreMat[current_row_score * (refLength + 1)];
+		rowMaxIndex = 0;
+
+		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
+
+			// load ref base
+			for (int base = 0; base < SSE_SIZE; ++base) {
+				ref_bases[base] = *(ref[base] + ref_pos);
+			}
+
+			sse_ref_bases = _mm_load_si128((__m128i const *) ref_bases);
+
+			// load relevant matrix cells (up, diag, left)
+			__m128i up = _mm_load_si128((__m128i *) (scoreMat + SSE_SIZE * (prev_row_score * (refLength + 1) + ref_pos + 1)));
+			__m128i diag = _mm_load_si128((__m128i *) (scoreMat + SSE_SIZE * (prev_row_score * (refLength + 1) + ref_pos)));
+			__m128i left = _mm_load_si128((__m128i *) (scoreMat + SSE_SIZE * (current_row_score * (refLength + 1) + ref_pos)));
+
+			// add gap penalties to up and left
+			up = _mm_add_epi16(up, x_scoreGapRef);
+			left = _mm_add_epi16(left, x_scoreGapRead);
+
+			// UC ref
+			sse_ref_bases = _mm_and_si128(sse_ref_bases,x_UCMask);
+
+			__m128i valid_ref_base = _mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_C),_mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_G),_mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_T),_mm_cmpeq_epi16(sse_ref_bases,x_A))));
+
+			//std::cout << "Ref base current:\t" << __m128i_toString<char>(sse_ref_bases);
+			//std::cout << std::endl << "Valid:\t" << __m128i_toString<short>(valid_ref_base) << std::endl;
+
+			__m128i valid_comp = _mm_and_si128(valid_read_base, valid_ref_base);
+
+			// match read and ref bases
+			// matches will hold 1, mismatches will hold 0
+			__m128i match = _mm_cmpeq_epi16(sse_read_bases, sse_ref_bases);
+
+			// bitwise and between 0 (mismatches) and match score gives match score only for equal bases
+			// add these to diagonal value
+
+			diag = _mm_add_epi16(diag, _mm_and_si128(valid_comp,_mm_and_si128(match, x_scoreMatch)));
+			//diag = _mm_add_epi16(diag, _mm_and_si128(match, x_scoreMatch));
+			// bitwise not and between 1 (matches) and mismatch score gives mismatch score only for unequal bases
+			// add these to diagonal value
+			diag = _mm_add_epi16(diag, _mm_and_si128(valid_comp,_mm_andnot_si128(match, x_scoreMismatch)));
+
+			// Cell value will be max of upper + gap penalty, left + gap penalty, diag + match/mismatch score or 0
+			__m128i cell = _mm_max_epi16(diag, _mm_max_epi16(left, _mm_max_epi16(up, x_zeros)));
+
+			// Determine pointer direction
+
+			__m128i pointer = x_zeros;
+
+			// up
+			match = _mm_cmpeq_epi16(cell, up);
+			pointer = _mm_max_epi16(pointer, _mm_and_si128(match, x_p_up));
+
+			// left
+			match = _mm_cmpeq_epi16(cell, left);
+			pointer = _mm_max_epi16(pointer, _mm_and_si128(match, x_p_left));
+
+			// diag
+			// Set diag pointer only if comparison of ATGC
+			match =  _mm_and_si128(valid_comp,_mm_cmpeq_epi16(cell, diag));
+			pointer = _mm_max_epi16(pointer, _mm_and_si128(match, x_p_diag));
+
+			// Store score and pointer
+			_mm_store_si128((__m128i *) (scoreMat + SSE_SIZE * (current_row_score * (refLength + 1) + ref_pos + 1)), cell);
+			_mm_store_si128((__m128i *) (matrix + SSE_SIZE * (current_row_aln * (refLength + 1) + ref_pos + 1)), pointer);
+
+			// Store read and ref positions if new max score
+			match = _mm_cmpgt_epi16(cell, max_score);
+
+//			std::cout << "Scores:\t" << __m128i_toString<short>(cell) << std::endl;
+//			std::cout << "Max:\t" << __m128i_toString<short>(max_score) << std::endl;
+//			std::cout << "Match:\t" << __m128i_toString<short>(match) << std::endl;
+
+			best_read_pos = _mm_max_epi16(_mm_andnot_si128(match, best_read_pos),_mm_and_si128(match, sse_read_pos));
+			best_ref_pos = _mm_max_epi16(_mm_andnot_si128(match, best_ref_pos),_mm_and_si128(match, sse_ref_pos));
+
+			//std::cout << "Best read pos\t" << __m128i_toString<short>(best_read_pos);
+			//std::cout << "Best ref pos\t" << __m128i_toString<short>(best_ref_pos);
+
+			max_score = _mm_max_epi16(cell, max_score);
+
+			sse_ref_pos = _mm_add_epi16(sse_ref_pos, see_increment);
+
+			//std::cout << "ref pos " << __m128i_toString<short>(sse_ref_pos);
+
+		}
+		prev_row_score = current_row_score;
+		(++current_row_score) &= 1;
+
+		++current_row_aln;
+
+		sse_read_pos = _mm_add_epi16(sse_read_pos, see_increment);
+
+		//std::cout << __m128i_toString<short>(sse_read_pos);
+
+	}
+
+//	std::cout << "Max scores: " << __m128i_toString<short>(max_score);
+
+	free(scoreMat);
+
+	_mm_store_si128((__m128i *)best_coordinates, best_read_pos);
+	_mm_store_si128((__m128i *)best_coordinates + 1, best_ref_pos);
+
+	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
+
+		matrix[current_row_aln * (refLength + 1)] = UP;
+		scoreMat[current_row_score * (refLength + 1)] = (read_pos + 1) * scoreGapRef;
+
+		// 0 score means forbidden char
+		if (max_read_pos == readLength - 1 && char_to_score[read[0][read_pos]] == 0) {
+			//std::cout << std::endl << "Max read is " << read_pos - 1 << std::endl;
+			max_read_pos = read_pos - 1;
+		}
+
+		// Save previous row max if read ends prematurely
+		if (max_read_pos + 1 == read_pos) {
+			globalRowMax = rowMax;
+			globalRowMaxIndex = rowMaxIndex;
+		}
+
+		rowMax = scoreMat[current_row_score * (refLength + 1)];
+		rowMaxIndex = 0;
+
+		std::cout << (read_pos + 1) * scoreGapRef << " ";
+
+		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
+
+			short up = scoreMat[prev_row_score * (refLength + 1) + ref_pos + 1];
+			short diag = scoreMat[prev_row_score * (refLength + 1) + ref_pos];
+			short left = scoreMat[current_row_score * (refLength + 1) + ref_pos];
+
+			diag += base_score[char_to_score[read[0][read_pos]]][char_to_score[ref[0][ref_pos]]];
+
+			short cur = max(up + scoreGapRef, max(left + scoreGapRead, diag));
+
+			scoreMat[current_row_score * (refLength + 1) + ref_pos + 1] = cur;
+
+			char pointer = START;
+
+			if (cur == diag) {
+				pointer = DIAG;
+			} else if (cur == up + scoreGapRef) {
+				pointer = UP;
+			} else if (cur == left + scoreGapRead) {
+				pointer = LEFT;
+			}
+
+			if (max_ref_pos == refLength - 1 && char_to_score[ref[0][ref_pos]] == 0) {
+				max_ref_pos = ref_pos - 1;
+			}
+
+			if (cur > rowMax) {
+				rowMax = cur;
+				rowMaxIndex = ref_pos;
+			}
+
+			matrix[current_row_aln * (refLength + 1) + ref_pos + 1] = pointer;
+
+			std::cout << cur << " ";
+		}
+		std::cout << std::endl;
+
+		prev_row_score = current_row_score;
+		(++current_row_score) &= 1;
+
+		++current_row_aln;
+	}
+
+	delete []scoreMat; scoreMat = 0;
+
+	best_coordinates[0] = max_read_pos;
+
+	if (globalRowMaxIndex < 0 ) {
+		globalRowMax = rowMax;
+		globalRowMaxIndex = rowMaxIndex;
+	}
+
+	std::cout << "Max_ref_pos: " << max_ref_pos << std::endl << "rowMaxIndex: " << globalRowMaxIndex << std::endl;
+	if (max_ref_pos == refLength - 1) {
+		best_coordinates[1] = globalRowMaxIndex;
+	} else {
+		best_coordinates[1] = max_ref_pos;
+	}
+	best_coordinates[1] = std::min(max_ref_pos, globalRowMaxIndex);
+
+}
+
 void SSEKernel::calc_alignment(char const * const * const read,
 				char const * const * const ref, Alignment * const alignment) {
 
@@ -361,6 +630,107 @@ void SSEKernel::score_alignment (char const * const * const read, char const * c
 		}
 		prev_row = cur_row;
 		(++cur_row) &= 1;
+	}
+
+	free(matrix);
+
+	_mm_store_si128((__m128i *)scores, max_score);
+}
+
+
+void SSEKernel::score_alignment_needleman_wunsch(char const * const * const read,
+		char const * const * const ref, short * const scores) {
+
+	__m128i max_score = x_zeros;
+
+	// Initialize SSE matrix
+	short * matrix = 0;
+
+	malloc16(matrix, sizeof(short) * (refLength + 1) * SCORING_ROWS * SSE_SIZE,16);
+	memset(matrix, 0, sizeof(short) * (refLength + 1) * SCORING_ROWS * SSE_SIZE);
+
+	// offset for first and second row
+	int prev_row = 0;
+	int cur_row = 1;
+
+	// SSE conversion array for current read and ref bases
+	align16 short read_bases [SSE_SIZE];
+	align16 short ref_bases  [SSE_SIZE];
+
+	// holds current read and ref base for SSE instruction
+	__m128i sse_read_bases;
+	__m128i sse_ref_bases;
+
+	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
+
+		// load read base
+		for (int base = 0; base < SSE_SIZE; ++base) {
+			read_bases[base] = *(read[base] + read_pos);
+		}
+
+		sse_read_bases = _mm_load_si128((__m128i const *) read_bases);
+
+		// UC read
+		sse_read_bases = _mm_and_si128(sse_read_bases,x_UCMask);
+
+		//std::cout << "Read base:\t" << __m128i_toString<char>(sse_read_bases);
+
+		__m128i valid_read_base = _mm_or_si128(_mm_cmpeq_epi16(sse_read_bases,x_C),_mm_or_si128(_mm_cmpeq_epi16(sse_read_bases,x_G),_mm_or_si128(_mm_cmpeq_epi16(sse_read_bases,x_T),_mm_cmpeq_epi16(sse_read_bases,x_A))));
+
+		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
+
+			// load ref base
+			for (int base = 0; base < SSE_SIZE; ++base) {
+				ref_bases[base] = *(ref[base] + ref_pos);
+			}
+
+			sse_ref_bases = _mm_load_si128((__m128i const *) ref_bases);
+
+			// load relevant matrix cells (up, diag, left)
+			__m128i up = _mm_load_si128((__m128i *) (matrix + SSE_SIZE * (prev_row * (refLength + 1) + ref_pos + 1)));
+			__m128i diag = _mm_load_si128((__m128i *) (matrix + SSE_SIZE * (prev_row * (refLength + 1) + ref_pos)));
+			__m128i left = _mm_load_si128((__m128i *) (matrix + SSE_SIZE * (cur_row * (refLength + 1) + ref_pos)));
+
+			// add gap penalties to up and left
+			up = _mm_add_epi16(up, x_scoreGapRef);
+			left = _mm_add_epi16(left, x_scoreGapRead);
+
+			// UC ref
+			sse_ref_bases = _mm_and_si128(sse_ref_bases,x_UCMask);
+
+			__m128i valid_ref_base = _mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_C),_mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_G),_mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_T),_mm_cmpeq_epi16(sse_ref_bases,x_A))));
+
+			__m128i valid_comp = _mm_and_si128(valid_read_base, valid_ref_base);
+
+			//std::cout << "Ref base:\t" << __m128i_toString<char>(sse_ref_bases);
+
+			// match read and ref bases
+			// matches will hold 1, mismatches will hold 0
+			__m128i match = _mm_cmpeq_epi16(sse_read_bases, sse_ref_bases);
+
+			// bitwise and between 0 (mismatches) and match score gives match score only for equal bases
+			// add these to diagonal value
+			diag = _mm_add_epi16(diag, _mm_and_si128(valid_comp,_mm_and_si128(match, x_scoreMatch)));
+			//diag = _mm_add_epi16(diag, _mm_and_si128(match, x_scoreMatch));
+			// bitwise not and between 1 (matches) and mismatch score gives mismatch score only for unequal bases
+			// add these to diagonal value
+			//diag = _mm_add_epi16(diag, _mm_andnot_si128(match, x_scoreMismatch));
+			diag = _mm_add_epi16(diag, _mm_and_si128(valid_comp,_mm_andnot_si128(match, x_scoreMismatch)));
+
+			// Cell value will be max of upper + gap penalty, left + gap penalty, diag + match/mismatch score or 0
+			__m128i cell = _mm_max_epi16(diag, _mm_max_epi16(left, up));
+
+			_mm_store_si128((__m128i *) (matrix + SSE_SIZE * (cur_row * (refLength + 1) + ref_pos + 1)), cell);
+		}
+
+		max_score = _mm_max_epi16(max_score, _mm_load_si128((__m128i *) (matrix + SSE_SIZE * (cur_row * (refLength + 1) + refLength))));
+
+		prev_row = cur_row;
+		(++cur_row) &= 1;
+	}
+
+	for (int ref_pos = 0; ref_pos < refLength + 1; ++ref_pos) {
+		max_score = _mm_max_epi16(max_score, _mm_load_si128((__m128i *) (matrix + SSE_SIZE * (prev_row * (refLength + 1) + ref_pos))));
 	}
 
 	free(matrix);
