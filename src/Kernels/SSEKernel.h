@@ -28,6 +28,7 @@
 #define START 0
 
 #include <emmintrin.h>
+#include <climits>
 
 class SSEKernel: public AlignmentKernel {
 
@@ -35,7 +36,7 @@ public:
 	SSEKernel() {
 
 		scoreGapRead = -3;
-		scoreGapRef = -2;
+		scoreGapRef = -3;
 		scoreMatch = 2;
 		scoreMismatch = -1;
 
@@ -84,11 +85,10 @@ private:
 			char const * const * const ref, short * const matrix, short * const best_coordinates);
 
 	void calculate_alignment_matrix_needleman_wunsch(char const * const * const read,
-			char const * const * const ref, alnMat const matrix, short * const best_coordinates);
+			char const * const * const ref, short * const matrix, short * const best_coordinates);
 
 	// Short = 2 byte
 	// __m128i fits 128 bits = 8 shorts
-
 	inline __m128i short_to_sse(short x) {
 
 		align16 short buf[SSE_SIZE];

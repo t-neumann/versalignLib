@@ -120,6 +120,7 @@ private:
 
 	void calculate_alignment_matrix_needleman_wunsch(char const * const * const read,
 			char const * const * const ref, alnMat const matrix, short * const best_coordinates);
+
 	int readLength;
 	int refLength;
 	int alnLength;
