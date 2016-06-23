@@ -186,7 +186,7 @@ void SWKernel::calculate_alignment_matrix_needleman_wunsch(char const * const * 
 	short rowMax = SHRT_MIN;
 	//short colMax = SHRT_MIN;
 
-	short globalRowMax = SHRT_MIN;
+//	short globalRowMax = SHRT_MIN;
 	short globalRowMaxIndex = -1;
 
 	short rowMaxIndex = 0;
@@ -209,7 +209,7 @@ void SWKernel::calculate_alignment_matrix_needleman_wunsch(char const * const * 
 
 		// Save previous row max if read ends prematurely
 		if (max_read_pos + 1 == read_pos) {
-			globalRowMax = rowMax;
+//			globalRowMax = rowMax;
 			globalRowMaxIndex = rowMaxIndex;
 		}
 
@@ -267,12 +267,14 @@ void SWKernel::calculate_alignment_matrix_needleman_wunsch(char const * const * 
 
 	best_coordinates[0] = max_read_pos;
 
+//	std::cout << "Max_ref_pos: " << max_ref_pos << std::endl << "globalRowMaxIndex: " << globalRowMaxIndex << std::endl << "rowMaxIndex: " << rowMaxIndex << std::endl;
+
+
 	if (globalRowMaxIndex < 0 ) {
-		globalRowMax = rowMax;
+		//globalRowMax = rowMax;
 		globalRowMaxIndex = rowMaxIndex;
 	}
 
-//	std::cout << "Max_ref_pos: " << max_ref_pos << std::endl << "rowMaxIndex: " << globalRowMaxIndex << std::endl;
 //	if (max_ref_pos == refLength - 1) {
 //		best_coordinates[1] = globalRowMaxIndex;
 //	} else {

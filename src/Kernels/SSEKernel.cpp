@@ -14,6 +14,19 @@
 
 #define SCORING_ROWS 2
 
+//void print_sse_char (__m128i sse) {
+//	short * tmp;
+//	malloc16(tmp, sizeof(short) * 8, 16);
+//
+//	_mm_store_si128((__m128i *)tmp, sse);
+//
+//	for (int i = 0; i < SSE_SIZE; ++i) {
+//		int character = tmp[i];
+//		std::cout << i << ":" << (char)character << " ";
+//	}
+//	std::cout << std::endl;
+//}
+
 void SSEKernel::calc_alignment_matrix(char const * const * const read,
 		char const * const * const ref, short * const matrix, short * const best_coordinates) {
 
@@ -186,7 +199,7 @@ void SSEKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 	__m128i rowMaxIndex = x_zeros;
 
 	// Tracking global maxima
-	__m128i globalRowMax = short_to_sse(SHRT_MIN);
+//	__m128i globalRowMax = short_to_sse(SHRT_MIN);
 	__m128i globalRowMaxIndex = short_to_sse(-1);
 
 	// Scoring matrix indices
@@ -250,9 +263,16 @@ void SSEKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 
 		// Save previous row max if read ends prematurely
 		// if max_readpos + 1 == read_pos -> globalRowMax = rowMax; globalRowMaxIndex = rowMaxIndex;
-		__m128i sel = _mm_cmpeq_epi16(_mm_sub_epi16(max_read_pos,see_increment), sse_read_pos);
-		globalRowMax =  _mm_blendv_si128(globalRowMax,rowMax,sel);
-		globalRowMaxIndex =  _mm_blendv_si128(globalRowMaxIndex,rowMaxIndex,sel);
+//		__m128i sel = _mm_cmpeq_epi16(_mm_add_epi16(max_read_pos,see_increment), sse_read_pos);
+//		globalRowMax =  _mm_blendv_si128(globalRowMax,rowMax,sel);
+//		globalRowMaxIndex =  _mm_blendv_si128(globalRowMaxIndex,rowMaxIndex,sel);
+		globalRowMaxIndex =  _mm_blendv_si128(globalRowMaxIndex,rowMaxIndex,_mm_cmpeq_epi16(_mm_add_epi16(max_read_pos,see_increment), sse_read_pos));
+
+//		std::cout << "Max_readpos + 1 == readpos:\t" << __m128i_toString<short>(sel) << std::endl;
+//		std::cout << "globalRowMax:\t" << __m128i_toString<short>(globalRowMax) << std::endl;
+//		std::cout << "globalRowMaxIndex:\t" << __m128i_toString<short>(globalRowMaxIndex) << std::endl;
+//		std::cout << "rowMax:\t" << __m128i_toString<short>(rowMax) << std::endl;
+//		std::cout << "rowMaxIndex:\t" << __m128i_toString<short>(rowMaxIndex) << std::endl;
 
 		rowMax = _mm_load_si128((__m128i *) (scoreMat + SSE_SIZE * (current_row_score * (refLength + 1))));
 		rowMaxIndex = x_zeros;
@@ -280,8 +300,9 @@ void SSEKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 
 			__m128i valid_ref_base = _mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_C),_mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_G),_mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_T),_mm_cmpeq_epi16(sse_ref_bases,x_A))));
 
-			//std::cout << "Ref base current:\t" << __m128i_toString<char>(sse_ref_bases);
-			//std::cout << std::endl << "Valid:\t" << __m128i_toString<short>(valid_ref_base) << std::endl;
+//			std::cout << "Ref base current:\t";
+//			print_sse_char(sse_ref_bases);
+//			std::cout << std::endl << "Valid:\t" << __m128i_toString<short>(valid_ref_base) << std::endl;
 
 			__m128i valid_comp = _mm_and_si128(valid_read_base, valid_ref_base);
 
@@ -336,10 +357,17 @@ void SSEKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 			//std::cout << "Best ref pos\t" << __m128i_toString<short>(best_ref_pos);
 
 			// if max_ref_pos == refLength - 1 AND ref char is invalid -> max_ref_pos = ref_pos - 1
+//			std::cout << std::endl << "Max_ref_pos:\t" << __m128i_toString<short>(max_ref_pos) << std::endl;
+//			std::cout << std::endl << "sse_ref_pos:\t" << __m128i_toString<short>(sse_ref_pos) << std::endl;
+//			std::cout << std::endl << "reflength - 1:\t" << __m128i_toString<short>(short_to_sse(refLength - 1)) << std::endl;
+//			std::cout << std::endl << "valid_ref_base:\t" << __m128i_toString<short>(valid_ref_base) << std::endl;
+//
+//			char a;
+//			std::cin >> a;
 			max_ref_pos = _mm_blendv_si128(max_ref_pos, _mm_sub_epi16(sse_ref_pos,see_increment), _mm_andnot_si128(valid_ref_base,_mm_cmpeq_epi16(max_ref_pos, short_to_sse(refLength - 1))));
 
 			// if cur > rowMax => rowMax = cur; rowMaxIndex = ref_pos;
-			sel = _mm_cmpgt_epi16(cell, rowMax);
+			__m128i sel = _mm_cmpgt_epi16(cell, rowMax);
 			rowMax = _mm_blendv_si128(rowMax,cell,sel);
 			rowMaxIndex = _mm_blendv_si128(rowMaxIndex,sse_ref_pos,sel);
 
@@ -363,14 +391,14 @@ void SSEKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 
 	free(scoreMat);
 
-	__m128i tmp = _mm_cmplt_epi16(globalRowMaxIndex,x_zeros);
+//	__m128i tmp = _mm_cmplt_epi16(globalRowMaxIndex,x_zeros);
 
-	globalRowMax = _mm_blendv_si128(globalRowMax, rowMax, tmp);
-	globalRowMaxIndex = _mm_blendv_si128(globalRowMaxIndex, rowMaxIndex, tmp);
+//	globalRowMax = _mm_blendv_si128(globalRowMax, rowMax, tmp);
+//	globalRowMaxIndex = _mm_blendv_si128(globalRowMaxIndex, rowMaxIndex, tmp);
+	globalRowMaxIndex = _mm_blendv_si128(globalRowMaxIndex, rowMaxIndex, _mm_cmplt_epi16(globalRowMaxIndex,x_zeros));
 
-	std::cout << "Max_ref_pos:\t" << __m128i_toString<short>(max_ref_pos) << std::endl;
-	std::cout << "globalRowMaxIndex:\t" << __m128i_toString<short>(globalRowMaxIndex) << std::endl;
-
+//	std::cout << "Max_ref_pos:\t" << __m128i_toString<short>(max_ref_pos) << std::endl;
+//	std::cout << "globalRowMaxIndex:\t" << __m128i_toString<short>(globalRowMaxIndex) << std::endl;
 
 	__m128i best_ref_pos = _mm_min_epi16(max_ref_pos,globalRowMaxIndex);
 
