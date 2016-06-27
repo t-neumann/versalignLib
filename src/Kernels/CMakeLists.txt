@@ -1,2 +1,5 @@
+MESSAGE( STATUS "CMAKE_CURRENT_BINARY_DIR: " ${CMAKE_CURRENT_BINARY_DIR} )
+MESSAGE( STATUS "CMAKE_CURRENT_SOURCE_DIR: " ${CMAKE_CURRENT_SOURCE_DIR} )
+
 add_library(Kernels SWKernel.cpp SSEKernel.cpp)
 target_link_libraries (Kernels Utils)
