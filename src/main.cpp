@@ -5,13 +5,12 @@
  *      Author: tobias.neumann
  */
 
-#include "Kernels/SWKernel.h"
-#include "Kernels/SSEKernel.h"
+#include "Kernels/plain/SWKernel.h"
+#include "Kernels/SSE/SSEKernel.h"
 #include "util/versalignUtil.h"
+#include "Kernels/OpenCL/ocl_testing.h"
 #include "Timer/Timer.h"
 #include <iostream>
-#include <string>
-#include <vector>
 
 #define READ_PAD '\0'
 #define REF_PAD '\0'
@@ -20,45 +19,15 @@ using std::cout;
 using std::string;
 using std::endl;
 
-#ifdef __APPLE__
-    #include "OpenCL/opencl.h"
-#else
-    #include <CL/cl.h>
-#endif
-
-std::string GetPlatformName (cl_platform_id id)
-{
-	size_t size = 0;
-	clGetPlatformInfo (id, CL_PLATFORM_NAME, 0, 0, &size);
-
-	std::string result;
-	result.resize (size);
-	clGetPlatformInfo (id, CL_PLATFORM_NAME, size,
-		const_cast<char*> (result.data ()), 0);
-
-	return result;
-}
+//#ifdef __APPLE__
+//    #include "OpenCL/opencl.h"
+//#else
+//    #include <CL/cl.h>
+//#endif
 
 int main(int argc, char *argv[]) {
 
-	// Testing OpenCL
-
-	cl_uint platformIdCount = 0;
-	clGetPlatformIDs (0, 0, &platformIdCount);
-
-	if (platformIdCount == 0) {
-		std::cerr << "No OpenCL platform found" << std::endl;
-		return 1;
-	} else {
-		std::cout << "Found " << platformIdCount << " platform(s)" << std::endl;
-	}
-
-	std::vector<cl_platform_id> platformIds (platformIdCount);
-	clGetPlatformIDs (platformIdCount, platformIds.data (), 0);
-
-	for (cl_uint i = 0; i < platformIdCount; ++i) {
-		std::cout << "\t (" << (i+1) << ") : " << GetPlatformName (platformIds [i]) << std::endl;
-	}
+	run_ocl_test();
 
 	return 0;
 

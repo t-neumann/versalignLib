@@ -9,7 +9,7 @@
 #define SSEKERNEL_H_
 
 //#include "AlignmentKernel.h"
-#include "../../include/AlignmentKernel.h"
+#include "AlignmentKernel.h"
 
 #if _WIN32
 #define align16 __declspec(align(16))

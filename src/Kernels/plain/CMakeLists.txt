@@ -1,6 +1,5 @@
 MESSAGE( STATUS "CMAKE_CURRENT_BINARY_DIR: " ${CMAKE_CURRENT_BINARY_DIR} )
 MESSAGE( STATUS "CMAKE_CURRENT_SOURCE_DIR: " ${CMAKE_CURRENT_SOURCE_DIR} )
 
-add_subdirectory (plain)
-add_subdirectory (SSE)
-add_subdirectory (OpenCL)
+add_library(plainKernel SWKernel.cpp)
+target_link_libraries (plainKernel Utils)

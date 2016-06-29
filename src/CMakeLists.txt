@@ -53,7 +53,9 @@ mark_as_advanced(
 INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIR})
 
 add_executable (Versalign main.cpp)
-target_link_libraries (Versalign Kernels)
+target_link_libraries (Versalign plainKernel)
+target_link_libraries (Versalign openCLKernel)
+target_link_libraries (Versalign SSEKernel)
 target_link_libraries (Versalign Timer)
 target_link_libraries (Versalign Utils)
 

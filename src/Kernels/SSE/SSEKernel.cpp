@@ -10,7 +10,7 @@
 #include <iostream>
 #include <cstdio>
 #include <sstream>
-#include "../util/versalignUtil.h"
+#include "../../util/versalignUtil.h"
 
 #define SCORING_ROWS 2
 
