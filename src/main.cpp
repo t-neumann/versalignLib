@@ -6,7 +6,8 @@
  */
 
 #include "Kernels/plain/SWKernel.h"
-#include "Kernels/SSE/SSEKernel.h"
+#include "Kernels/AVX-SSE/SSEKernel.h"
+//#include "Kernels/AVX-SSE/AVXKernel.h"
 #include "util/versalignUtil.h"
 #include "Kernels/OpenCL/ocl_testing.h"
 #include "Timer/Timer.h"
@@ -29,7 +30,7 @@ int main(int argc, char *argv[]) {
 
 	run_ocl_test();
 
-	return 0;
+	//return 0;
 
 	/*char const
 	 * reads[] =
@@ -110,7 +111,15 @@ int main(int argc, char *argv[]) {
 			"AGCAGTAC",
 			"AGAGAGAG",
 			"",
-			"ATATATAT" };
+			"ATATATAT",
+			"AGG",
+			"TAA",
+			"AGAG",
+			"AGCAGTAG",
+			"TATAC",
+			"AGGAAGAG",
+			"TT",
+			"CCCCC"};
 
 	char const
 	* refs[] =
@@ -122,9 +131,17 @@ int main(int argc, char *argv[]) {
 			"TAGCATCAAGCAGTACTACA",
 			"TCTCTCTCTCTCTCTCTCTC",
 			"AGCAGATGACATGCATGCAA",
-			"" };
+			"",
+			"AGCAGATGAGGGCGGATAGC",
+			"TTTTGCCAACGCATGGCAGA",
+			"ATGACGACGCAGTGCTTTTT",
+			"GCAATAGAATAGATAGTGGT",
+			"TAGCATCAAGCAGTACTACA",
+			"TCTCTCTCTCTCTCTCTCTC",
+			"AGCAGATGACATGCATGCAA",
+			""};
 
-	int seqNumber = 8;
+	int seqNumber = 16;
 
 	size_t max_read_length = pad(reads, seqNumber, READ_PAD);
 
@@ -142,7 +159,20 @@ int main(int argc, char *argv[]) {
 
 	Alignment * alignments = 0;
 
-	for (int i = 0; i < 1; ++i) {
+	for (int i = 0; i < 2; ++i) {
+
+		char * * reads_batch = new char * [8];
+		for (int j = 0; j < 8; ++j) {
+			reads_batch[j] = new char [max_read_length];
+			memcpy(reads_batch[j],reads[i * 8 + j], max_read_length * sizeof(char));
+			//reads_batch[j] = reads[i * 8 + j];
+		}
+		char * * refs_batch = new char * [8];
+		for (int j = 0; j < 8; ++j) {
+			refs_batch[j] = new char [max_ref_length];
+			memcpy(refs_batch[j],refs[i * 8 + j], max_ref_length * sizeof(char));
+			//refs_batch[j] = refs[i * 8 + j];
+		}
 
 //		ssekernel->score_alignment_needleman_wunsch(reads, refs, scores);
 //		for (int j = 0; j < seqNumber; ++j) {
@@ -152,19 +182,20 @@ int main(int argc, char *argv[]) {
 //		}
 		alignments = new Alignment[seqNumber];
 		//ssekernel->calc_alignment(reads, refs, alignments);
-		ssekernel->calc_alignment_needleman_wunsch(reads, refs, alignments);
+		//ssekernel->calc_alignment_needleman_wunsch(reads, refs, alignments);
+		ssekernel->calc_alignment_needleman_wunsch(reads_batch, refs_batch, alignments);
+
+		for (int i = 0; i < 8; ++i) {
+			std::cout << "==================" << std::endl << "\"";
+			std::cout << alignments[i].read + alignments[i].readStart;
+			std::cout << "\"" << std::endl << "\"";
+			std::cout << alignments[i].ref + alignments[i].refStart;
+			std::cout << "\"" << std::endl << "==================" << std::endl;
+		}
 
 	}
 
 	timer.stop();
-
-	for (int i = 0; i < 8; ++i) {
-		std::cout << "==================" << std::endl << "\"";
-		std::cout << alignments[i].read + alignments[i].readStart;
-		std::cout << "\"" << std::endl << "\"";
-		std::cout << alignments[i].ref + alignments[i].refStart;
-		std::cout << "\"" << std::endl << "==================" << std::endl;
-	}
 
 	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
 

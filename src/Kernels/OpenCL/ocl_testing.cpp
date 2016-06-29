@@ -1,5 +1,9 @@
 #include "ocl_testing.h"
 
+std::string get_device_type(cl_int const & device_type) {
+	return device_type == CL_DEVICE_TYPE_GPU ? "GPU" : "CPU";
+}
+
 void run_ocl_test() {
 
 // Testing OpenCL
@@ -20,7 +24,15 @@ void run_ocl_test() {
 	if(all_devices.size()>0){
 		std::cout<< "Available devices:" << std::endl;
 		for (std::vector<cl::Device>::iterator i = all_devices.begin(); i != all_devices.end(); ++i) {
-			std::cout << i->getInfo<CL_DEVICE_NAME>()<< std::endl;
+			std::cout << i->getInfo<CL_DEVICE_NAME>() << "\n\n";
+			std::cout << "\tType: " << get_device_type(i->getInfo<CL_DEVICE_TYPE>()) << std::endl;
+            std::cout << "\tVendor: " << i->getInfo<CL_DEVICE_VENDOR>() << std::endl;
+            std::cout << "\tMax Compute Units: " << i->getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << std::endl;
+            std::cout << "\tGlobal Memory: " << i->getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>() << std::endl;
+            std::cout << "\tMax Clock Frequency: " << i->getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>() << std::endl;
+            std::cout << "\tMax Allocateable Memory: " << i->getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>() << std::endl;
+            std::cout << "\tLocal Memory: " << i->getInfo<CL_DEVICE_LOCAL_MEM_SIZE>() << std::endl;
+            std::cout << "\tAvailable: " << i->getInfo< CL_DEVICE_AVAILABLE>() << std::endl;
 		}
 		std::cout << std::endl;
 

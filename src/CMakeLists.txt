@@ -56,6 +56,7 @@ add_executable (Versalign main.cpp)
 target_link_libraries (Versalign plainKernel)
 target_link_libraries (Versalign openCLKernel)
 target_link_libraries (Versalign SSEKernel)
+#target_link_libraries (Versalign AVXKernel)
 target_link_libraries (Versalign Timer)
 target_link_libraries (Versalign Utils)
 

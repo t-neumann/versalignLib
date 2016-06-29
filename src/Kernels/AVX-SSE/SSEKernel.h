@@ -27,7 +27,7 @@
 #define DIAG 3
 #define START 0
 
-#include <emmintrin.h>
+#include <immintrin.h>
 #include <climits>
 
 class SSEKernel: public AlignmentKernel {
