@@ -12,12 +12,12 @@
 #include "AlignmentKernel.h"
 
 #if _WIN32
-#define align16 __declspec(align(16))
-#define malloc16(ptr,size,align)  ptr = (short*) _aligned_malloc(size, align)
+#define align32 __declspec(align(32))
+#define malloc32(ptr,size,align)  ptr = (short*) _aligned_malloc(size, align)
 #else
 #include <stdlib.h>
-#define malloc16(ptr,size,align)  posix_memalign(((void * *)&ptr), align, size)
-#define align16 __attribute__((aligned(16)))
+#define malloc32(ptr,size,align)  posix_memalign(((void * *)&ptr), align, size)
+#define align32 __attribute__((aligned(32)))
 #endif
 
 #define AVX_SIZE 16
@@ -91,7 +91,7 @@ private:
 	// __m256i fits 256 bits = 16 shorts
 	inline __m256i short_to_avx(short x) {
 
-		align16 short buf[AVX_SIZE];
+		align32 short buf[AVX_SIZE];
 		for (int i = 0; i < AVX_SIZE; ++i)
 			buf[i] = x;
 

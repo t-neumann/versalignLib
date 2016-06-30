@@ -10,7 +10,7 @@
 
 #include <string.h>
 #include <sstream>
-#include <emmintrin.h>
+#include <immintrin.h>
 
 size_t pad(char const * * strings, int const & n, char const & pad);
 

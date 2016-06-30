@@ -10,10 +10,8 @@
 #include <iostream>
 #include <cstdio>
 #include <sstream>
-#include "../../util/versalignUtil.h"
 
 #define SCORING_ROWS 2
-
 
 template <typename T>
 std::string __m256i_toString(const __m256i var) {
@@ -48,12 +46,12 @@ void AVXKernel::calc_alignment_matrix(char const * const * const read,
 
 	short * scoreMat = 0;
 
-	malloc16(scoreMat, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE,16);
+	malloc32(scoreMat, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE,32);
 	memset(scoreMat, 0, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE);
 
 	// SSE conversion array for current read and ref bases
-	align16 short read_bases [AVX_SIZE];
-	align16 short ref_bases  [AVX_SIZE];
+	align32 short read_bases [AVX_SIZE];
+	align32 short ref_bases  [AVX_SIZE];
 
 	// holds current read and ref base for SSE instruction
 	__m256i sse_read_bases;
@@ -215,12 +213,12 @@ void AVXKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 
 	short * scoreMat = 0;
 
-	malloc16(scoreMat, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE,16);
+	malloc32(scoreMat, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE,32);
 	memset(scoreMat, 0, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE);
 
 	// SSE conversion array for current read and ref bases
-	align16 short read_bases [AVX_SIZE];
-	align16 short ref_bases  [AVX_SIZE];
+	align32 short read_bases [AVX_SIZE];
+	align32 short ref_bases  [AVX_SIZE];
 
 	// holds current read and ref base for SSE instruction
 	__m256i sse_read_bases;
@@ -395,10 +393,7 @@ void AVXKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 
 	free(scoreMat);
 
-//	__m256i tmp = _mm256_cmpgt_epi16(x_zeros,globalRowMaxIndex);
-
-//	globalRowMax = _mm_blendv_si256(globalRowMax, rowMax, tmp);
-//	globalRowMaxIndex = _mm_blendv_si256(globalRowMaxIndex, rowMaxIndex, tmp);
+	//globalRowMaxIndex = _mm_blendv_si256(globalRowMaxIndex, rowMaxIndex, _mm256_cmpgt_epi16(x_zeros,globalRowMaxIndex));
 	globalRowMaxIndex = _mm_blendv_si256(globalRowMaxIndex, rowMaxIndex, _mm256_cmpgt_epi16(x_zeros,globalRowMaxIndex));
 
 //	std::cout << "Max_ref_pos:\t" << __m256i_toString<short>(max_ref_pos) << std::endl;
@@ -416,11 +411,11 @@ void AVXKernel::calc_alignment(char const * const * const read,
 	std::cout << "Aln Length:\t" << alnLength << std::endl;
 
 	short * matrix = 0;
-	malloc16(matrix, sizeof(short) * (refLength + 1) * (readLength + 1) * AVX_SIZE,16);
+	malloc32(matrix, sizeof(short) * (refLength + 1) * (readLength + 1) * AVX_SIZE,32);
 	memset(matrix, 0, (refLength + 1) * (readLength + 1) * AVX_SIZE * sizeof(short));
 
 	short * best_coordinates = 0;
-	malloc16(best_coordinates, sizeof(short) * 2 * AVX_SIZE,16);
+	malloc32(best_coordinates, sizeof(short) * 2 * AVX_SIZE,32);
 	memset(best_coordinates, 0, sizeof(short) * 2 * AVX_SIZE);
 
 	std::cout << "Score matrix" << std::endl;
@@ -515,11 +510,11 @@ void AVXKernel::calc_alignment_needleman_wunsch(char const * const * const read,
 	std::cout << "Aln Length:\t" << alnLength << std::endl;
 
 	short * matrix = 0;
-	malloc16(matrix, sizeof(short) * (refLength + 1) * (readLength + 1) * AVX_SIZE,16);
+	malloc32(matrix, sizeof(short) * (refLength + 1) * (readLength + 1) * AVX_SIZE,32);
 	memset(matrix, 0, (refLength + 1) * (readLength + 1) * AVX_SIZE * sizeof(short));
 
 	short * best_coordinates = 0;
-	malloc16(best_coordinates, sizeof(short) * 2 * AVX_SIZE,16);
+	malloc32(best_coordinates, sizeof(short) * 2 * AVX_SIZE,32);
 	memset(best_coordinates, 0, sizeof(short) * 2 * AVX_SIZE);
 
 	//std::cout << "Score matrix" << std::endl;
@@ -616,7 +611,7 @@ void AVXKernel::score_alignment (char const * const * const read, char const * c
 	// Initialize SSE matrix
 	short * matrix = 0;
 
-	malloc16(matrix, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE,16);
+	malloc32(matrix, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE,32);
 	memset(matrix, 0, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE);
 
 	// offset for first and second row
@@ -624,8 +619,8 @@ void AVXKernel::score_alignment (char const * const * const read, char const * c
 	int cur_row = 1;
 
 	// SSE conversion array for current read and ref bases
-	align16 short read_bases [AVX_SIZE];
-	align16 short ref_bases  [AVX_SIZE];
+	align32 short read_bases [AVX_SIZE];
+	align32 short ref_bases  [AVX_SIZE];
 
 	// holds current read and ref base for SSE instruction
 	__m256i sse_read_bases;
@@ -713,7 +708,7 @@ void AVXKernel::score_alignment_needleman_wunsch(char const * const * const read
 	// Initialize SSE matrix
 	short * matrix = 0;
 
-	malloc16(matrix, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE,16);
+	malloc32(matrix, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE,32);
 	memset(matrix, 0, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE);
 
 	// offset for first and second row
@@ -721,8 +716,8 @@ void AVXKernel::score_alignment_needleman_wunsch(char const * const * const read
 	int cur_row = 1;
 
 	// SSE conversion array for current read and ref bases
-	align16 short read_bases [AVX_SIZE];
-	align16 short ref_bases  [AVX_SIZE];
+	align32 short read_bases [AVX_SIZE];
+	align32 short ref_bases  [AVX_SIZE];
 
 	// holds current read and ref base for SSE instruction
 	__m256i sse_read_bases;

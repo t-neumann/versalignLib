@@ -1,6 +1,8 @@
 MESSAGE( STATUS "CMAKE_CURRENT_BINARY_DIR: " ${CMAKE_CURRENT_BINARY_DIR} )
 MESSAGE( STATUS "CMAKE_CURRENT_SOURCE_DIR: " ${CMAKE_CURRENT_SOURCE_DIR} )
 
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/src/cmake")
+
 include_directories (.)
 include_directories ("${PROJECT_SOURCE_DIR}/include")
 
@@ -52,11 +54,30 @@ mark_as_advanced(
   
 INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIR})
 
+include(CheckCompilerFlag)
+
+CHECK_COMPILER_FLAG(-mavx AVX_FLAG)
+CHECK_COMPILER_FLAG(-mavx2 AVX2_FLAG)
+
+#if (AVX_FLAG AND AVX2_FLAG)
+#	message("AVX2 support detected")
+#	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mavx -mavx2")
+#	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx -mavx2")
+#	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_CXX_FLAGS} -mavx -mavx2")
+#else()
+#	message("No AVX2 support detected")
+#endif()
+
 add_executable (Versalign main.cpp)
+message(STATUS "Linking plain Kernel")
 target_link_libraries (Versalign plainKernel)
+message(STATUS "Linking openCL Kernel")
 target_link_libraries (Versalign openCLKernel)
+message(STATUS "Linking SSE Kernel")
 target_link_libraries (Versalign SSEKernel)
+message(STATUS "Linking AVX Kernel")
 #target_link_libraries (Versalign AVXKernel)
+message(STATUS "Linking Utils")
 target_link_libraries (Versalign Timer)
 target_link_libraries (Versalign Utils)
 
