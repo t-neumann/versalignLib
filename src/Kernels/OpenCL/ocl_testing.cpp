@@ -55,8 +55,11 @@ void run_ocl_test() {
 
 	// kernel calculates for each element C=A+B
 	std::string kernel_code=
-			"   void kernel simple_add(global const int* A, global const int* B, global int* C){       "
-			"       C[get_global_id(0)]=A[get_global_id(0)]+B[get_global_id(0)];                 "
+			"   #pragma OPENCL EXTENSION cl_amd_printf : enable\n"
+			"   #pragma OPENCL EXTENSION cl_khr_byte_addressable_store: enable\n"
+			"   void kernel simple_add(global const int* A, global const int* B, global int* C){\n"
+			"   printf(\"hello world A %i B %i \", A[get_global_id(0)], B[get_global_id(0)]);\n"
+			"       C[get_global_id(0)]=A[get_global_id(0)]+B[get_global_id(0)];\n"
 			"   }                                                                               ";
 
 	sources.push_back(std::make_pair(kernel_code.data(), kernel_code.length()));

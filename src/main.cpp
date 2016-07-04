@@ -29,9 +29,9 @@ using std::endl;
 
 int main(int argc, char *argv[]) {
 
-	//run_ocl_test();
+	run_ocl_test();
 
-	//return 0;
+	return 0;
 
 	/*char const
 	 * reads[] =
