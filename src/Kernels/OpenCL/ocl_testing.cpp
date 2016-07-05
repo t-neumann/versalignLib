@@ -1,4 +1,9 @@
 #include "ocl_testing.h"
+#include "test_kernel.h"
+
+#include <sstream>
+
+extern char const test_kernel[];
 
 std::string get_device_type(cl_int const & device_type) {
 	return device_type == CL_DEVICE_TYPE_GPU ? "GPU" : "CPU";
@@ -53,16 +58,19 @@ void run_ocl_test() {
 
 	cl::Program::Sources sources;
 
-	// kernel calculates for each element C=A+B
-	std::string kernel_code=
-			"   #pragma OPENCL EXTENSION cl_amd_printf : enable\n"
-			"   #pragma OPENCL EXTENSION cl_khr_byte_addressable_store: enable\n"
-			"   void kernel simple_add(global const int* A, global const int* B, global int* C){\n"
-			"   printf(\"hello world A %i B %i \", A[get_global_id(0)], B[get_global_id(0)]);\n"
-			"       C[get_global_id(0)]=A[get_global_id(0)]+B[get_global_id(0)];\n"
-			"   }                                                                               ";
+	// Load Kernel
 
-	sources.push_back(std::make_pair(kernel_code.data(), kernel_code.length()));
+	//std::stringstream kernel_code_hex;
+	//kernel_code_hex << test_kernel;
+	std::string kernel_code_hex (test_kernel);
+
+	std::stringstream test;
+	test << kernel_code_hex;
+
+	std::string input (test.str());
+
+	//sources.push_back(std::make_pair(kernel_code.data(), kernel_code.length()));
+	sources.push_back(std::make_pair(input.data(), input.length()));
 
 	cl::Program program(context,sources);
 	if(program.build()!=CL_SUCCESS){

@@ -1,18 +1,21 @@
 MESSAGE( STATUS "CMAKE_CURRENT_BINARY_DIR: " ${CMAKE_CURRENT_BINARY_DIR} )
 MESSAGE( STATUS "CMAKE_CURRENT_SOURCE_DIR: " ${CMAKE_CURRENT_SOURCE_DIR} )
 
-#set(Boost_USE_STATIC_LIBS OFF) 
-#set(Boost_USE_MULTITHREADED ON)  
-#set(Boost_USE_STATIC_RUNTIME OFF) 
-#find_package(Boost REQUIRED COMPONENTS compute) 
+include_directories (${PROJECT_BINARY_DIR})
 
-#if(Boost_FOUND)
-#    include_directories(${Boost_INCLUDE_DIRS})
-    add_library(openCLKernel ocl_testing.cpp) 
-#    target_link_libraries(openCLKernel ${Boost_LIBRARIES})
-#endif()
-
+MESSAGE (STATUS "project binary dir" ${PROJECT_BINARY_DIR})
 add_executable(hexify hexify/hexify.cpp)
+
+ADD_CUSTOM_COMMAND(
+	OUTPUT ${PROJECT_BINARY_DIR}/test_kernel.h
+	COMMAND $<TARGET_FILE:hexify> ${CMAKE_CURRENT_SOURCE_DIR}/opencl_c/test_kernel
+	COMMAND ${CMAKE_COMMAND} -E rename ${CMAKE_CURRENT_SOURCE_DIR}/opencl_c/test_kernel.h ${PROJECT_BINARY_DIR}/test_kernel.h
+	DEPENDS hexify
+	COMMENT "Hexifying test_kernel"
+	MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/opencl_c/test_kernel.cl
+)
+
+add_library(openCLKernel STATIC ${PROJECT_BINARY_DIR}/test_kernel.h ocl_testing.cpp)	
 
 
 
