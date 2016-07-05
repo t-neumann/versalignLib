@@ -29,10 +29,6 @@ using std::endl;
 
 int main(int argc, char *argv[]) {
 
-	run_ocl_test();
-
-	return 0;
-
 	/*char const
 	 * reads[] =
 						{
@@ -147,6 +143,11 @@ int main(int argc, char *argv[]) {
 	size_t max_read_length = pad(reads, seqNumber, READ_PAD);
 
 	size_t max_ref_length =	pad(refs, seqNumber, REF_PAD);
+
+	run_ocl_test(reads, refs, seqNumber, max_read_length, max_ref_length);
+
+	return 0;
+
 
 //	AVXKernel * avxkernel = new AVXKernel();
 //

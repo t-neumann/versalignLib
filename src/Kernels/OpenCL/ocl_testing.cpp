@@ -9,7 +9,7 @@ std::string get_device_type(cl_int const & device_type) {
 	return device_type == CL_DEVICE_TYPE_GPU ? "GPU" : "CPU";
 }
 
-void run_ocl_test() {
+void run_ocl_test(char const * const * const reads, char const * const * const refs, int const & seqNumber, size_t const & max_read_length, size_t const & max_ref_length) {
 
 // Testing OpenCL
 
@@ -104,8 +104,33 @@ void run_ocl_test() {
 	//read result C from the device to array C
 	queue.enqueueReadBuffer(buffer_C,CL_TRUE,0,sizeof(int)*10,C);
 
-	std::cout<<" result: \n";
+	//std::cout<<" result: \n";
 	for(int i=0;i<10;i++){
-		std::cout<<C[i]<<" ";
+		//std::cout<<C[i]<<" ";
 	}
+
+	char * host_reads = new char[seqNumber*max_read_length];
+	char * host_refs = new char[seqNumber*max_ref_length];
+
+	for (int i = 0; i < seqNumber; ++i) {
+			memcpy(&host_reads[i * max_read_length], refs[i], sizeof(char) * max_read_length);
+			memcpy(&host_refs[i * max_ref_length], reads[i], sizeof(char) * max_ref_length);
+		}
+
+	//cl::Buffer read_buffer(context,CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,sizeof(char)*seqNumber*max_read_length);
+	//cl::Buffer ref_buffer(context,CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,sizeof(char)*seqNumber*max_ref_length);
+
+	//queue.enqueueMapBuffer(read_buffer,CL_TRUE,CL_MAP_READ,0,sizeof(char)*seqNumber*max_read_length);
+	//queue.enqueueMapBuffer(ref_buffer,CL_TRUE,CL_MAP_READ,0,sizeof(int)*seqNumber*max_ref_length);
+
+	cl::Buffer read_buffer(context,CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,sizeof(char)*seqNumber*max_read_length,host_reads);
+	cl::Buffer ref_buffer(context,CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,sizeof(char)*seqNumber*max_ref_length,host_refs);
+
+	//alternative way to run the kernel
+	cl::Kernel kernel_print = cl::Kernel(program,"print_string");
+	kernel_add.setArg(0,read_buffer);
+	kernel_add.setArg(1,ref_buffer);
+	queue.enqueueNDRangeKernel(kernel_print,cl::NullRange,cl::NDRange(seqNumber),cl::NullRange);
+	queue.finish();
+
 }

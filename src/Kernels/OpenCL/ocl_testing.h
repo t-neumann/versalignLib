@@ -13,7 +13,7 @@
 #include <vector>
 #include <iostream>
 
-void run_ocl_test();
+void run_ocl_test(char const * const * const reads, char const * const * const refs, int const & seqNumber, size_t const & max_read_length, size_t const & max_ref_length);
 
 
 #endif /* SRC_KERNELS_OPENCL_OCL_TESTING_H_ */
