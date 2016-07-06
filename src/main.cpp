@@ -205,26 +205,26 @@ int main(int argc, char *argv[]) {
 		}
 
 		//ssekernel->score_alignment_needleman_wunsch(reads, refs, scores);
-//		ssekernel->score_alignment_needleman_wunsch(reads_batch, refs_batch, scores);
-//		for (int j = 0; j < 8; ++j) {
-//			cout << "Read:\t" << reads_batch[j] << std::endl <<
-//					"Ref:\t" << refs_batch[j] << std::endl <<
-//					"Score:\t" << scores[j] << std::endl;
-//		}
+		ssekernel->score_alignment(reads_batch, refs_batch, scores);
+		for (int j = 0; j < 8; ++j) {
+			cout << "Read:\t" << reads_batch[j] << std::endl <<
+					"Ref:\t" << refs_batch[j] << std::endl <<
+					"Score:\t" << scores[j] << std::endl;
+		}
 //		std::cout << std::endl << "Batch end" << std::endl;
-		alignments = new Alignment[8];
-		ssekernel->calc_alignment_needleman_wunsch(reads_batch, refs_batch, alignments);
+//		alignments = new Alignment[8];
+//		ssekernel->calc_alignment_needleman_wunsch(reads_batch, refs_batch, alignments);
 		//ssekernel->calc_alignment_needleman_wunsch(reads, refs, alignments);
 //		ssekernel->calc_alignment_needleman_wunsch(reads_batch, refs_batch, alignments);
 
-		for (int j = 0; j < 8; ++j) {
-			std::cout << "==================" << std::endl << "\"";
-			std::cout << alignments[j].read + alignments[j].readStart;
-			std::cout << "\"" << std::endl << "\"";
-			std::cout << alignments[j].ref + alignments[j].refStart;
-			std::cout << "\"" << std::endl << "==================" << std::endl;
-		}
-
+//		for (int j = 0; j < 8; ++j) {
+//			std::cout << "==================" << std::endl << "\"";
+//			std::cout << alignments[j].read + alignments[j].readStart;
+//			std::cout << "\"" << std::endl << "\"";
+//			std::cout << alignments[j].ref + alignments[j].refStart;
+//			std::cout << "\"" << std::endl << "==================" << std::endl;
+//		}
+//
 	}
 
 	timer.stop();

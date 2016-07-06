@@ -2,6 +2,9 @@
 #include "test_kernel.h"
 
 #include <sstream>
+#include <cstdio>
+
+using std::stringstream;
 
 extern char const test_kernel[];
 
@@ -72,50 +75,66 @@ void run_ocl_test(char const * const * const reads, char const * const * const r
 	//sources.push_back(std::make_pair(kernel_code.data(), kernel_code.length()));
 	sources.push_back(std::make_pair(input.data(), input.length()));
 
+	stringstream compilerDefines;
+	compilerDefines << "-D read_length=" << max_read_length
+				<< " -D ref_length=" << max_ref_length
+				<< " -D score_gap_read=-3"
+				<< " -D score_gap_ref=-3"
+				<< " -D score_match=2"
+				<< " -D score_mismatch=-1";
+
 	cl::Program program(context,sources);
-	if(program.build()!=CL_SUCCESS){
+
+	if(program.build(compilerDefines.str().c_str())!=CL_SUCCESS){
 		std::cout<<" Error building: "<<program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device)<<"\n";
 		exit(1);
 	}
-	// create buffers on the device
-	cl::Buffer buffer_A(context,CL_MEM_READ_WRITE,sizeof(int)*10);
-	cl::Buffer buffer_B(context,CL_MEM_READ_WRITE,sizeof(int)*10);
-	cl::Buffer buffer_C(context,CL_MEM_READ_WRITE,sizeof(int)*10);
-
-	int A[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-	int B[] = {0, 1, 2, 0, 1, 2, 0, 1, 2, 0};
-
-	//create queue to which we will push commands for the device.
+//	// create buffers on the device
+//	cl::Buffer buffer_A(context,CL_MEM_READ_WRITE,sizeof(int)*10);
+//	cl::Buffer buffer_B(context,CL_MEM_READ_WRITE,sizeof(int)*10);
+//	cl::Buffer buffer_C(context,CL_MEM_READ_WRITE,sizeof(int)*10);
+//
+//	int A[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+//	int B[] = {0, 1, 2, 0, 1, 2, 0, 1, 2, 0};
+//
+//	//create queue to which we will push commands for the device.
 	cl::CommandQueue queue(context,default_device);
-
-	//write arrays A and B to the device
-	queue.enqueueWriteBuffer(buffer_A,CL_TRUE,0,sizeof(int)*10,A);
-	queue.enqueueWriteBuffer(buffer_B,CL_TRUE,0,sizeof(int)*10,B);
-
-	//alternative way to run the kernel
-	cl::Kernel kernel_add=cl::Kernel(program,"simple_add");
-	kernel_add.setArg(0,buffer_A);
-	kernel_add.setArg(1,buffer_B);
-	kernel_add.setArg(2,buffer_C);
-	queue.enqueueNDRangeKernel(kernel_add,cl::NullRange,cl::NDRange(10),cl::NullRange);
-	queue.finish();
-
-	int C[10];
-	//read result C from the device to array C
-	queue.enqueueReadBuffer(buffer_C,CL_TRUE,0,sizeof(int)*10,C);
-
-	//std::cout<<" result: \n";
-	for(int i=0;i<10;i++){
-		//std::cout<<C[i]<<" ";
-	}
+//
+//	//write arrays A and B to the device
+//	queue.enqueueWriteBuffer(buffer_A,CL_TRUE,0,sizeof(int)*10,A);
+//	queue.enqueueWriteBuffer(buffer_B,CL_TRUE,0,sizeof(int)*10,B);
+//
+//	//alternative way to run the kernel
+//	cl::Kernel kernel_add=cl::Kernel(program,"simple_add");
+//	kernel_add.setArg(0,buffer_A);
+//	kernel_add.setArg(1,buffer_B);
+//	kernel_add.setArg(2,buffer_C);
+//	queue.enqueueNDRangeKernel(kernel_add,cl::NullRange,cl::NDRange(10),cl::NullRange);
+//	queue.finish();
+//
+//	int C[10];
+//	//read result C from the device to array C
+//	queue.enqueueReadBuffer(buffer_C,CL_TRUE,0,sizeof(int)*10,C);
+//
+//	//std::cout<<" result: \n";
+//	for(int i=0;i<10;i++){
+//		//std::cout<<C[i]<<" ";
+//	}
 
 	char * host_reads = new char[seqNumber*max_read_length];
 	char * host_refs = new char[seqNumber*max_ref_length];
+	short * host_results = new short[seqNumber]();
 
 	for (int i = 0; i < seqNumber; ++i) {
-			memcpy(&host_reads[i * max_read_length], refs[i], sizeof(char) * max_read_length);
-			memcpy(&host_refs[i * max_ref_length], reads[i], sizeof(char) * max_ref_length);
+			memcpy(&host_reads[i * max_read_length], reads[i], sizeof(char) * max_read_length);
+			memcpy(&host_refs[i * max_ref_length], refs[i], sizeof(char) * max_ref_length);
 		}
+
+	printf("Reads %.*s\n", max_read_length, host_reads);
+	printf("Refs %.*s\n", max_ref_length, host_refs);
+
+	//printf("A %s B %s ", host_reads, host_refs);
+	//std::cout << host_reads << std::endl << host_refs << std::endl;
 
 	//cl::Buffer read_buffer(context,CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,sizeof(char)*seqNumber*max_read_length);
 	//cl::Buffer ref_buffer(context,CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,sizeof(char)*seqNumber*max_ref_length);
@@ -125,12 +144,19 @@ void run_ocl_test(char const * const * const reads, char const * const * const r
 
 	cl::Buffer read_buffer(context,CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,sizeof(char)*seqNumber*max_read_length,host_reads);
 	cl::Buffer ref_buffer(context,CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,sizeof(char)*seqNumber*max_ref_length,host_refs);
+	cl::Buffer result_buffer(context,CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,sizeof(short)*seqNumber,host_results);
 
+	std::cout << "Running \"score_alignment_smith_waterman\" Kernel...\n";
 	//alternative way to run the kernel
-	cl::Kernel kernel_print = cl::Kernel(program,"print_string");
-	kernel_add.setArg(0,read_buffer);
-	kernel_add.setArg(1,ref_buffer);
-	queue.enqueueNDRangeKernel(kernel_print,cl::NullRange,cl::NDRange(seqNumber),cl::NullRange);
+	cl::Kernel kernel_print = cl::Kernel(program,"score_alignment_smith_waterman");
+	kernel_print.setArg(0,read_buffer);
+	kernel_print.setArg(1,ref_buffer);
+	kernel_print.setArg(2,result_buffer);
+	queue.enqueueNDRangeKernel(kernel_print,cl::NullRange,cl::NDRange(1),cl::NullRange);
 	queue.finish();
+
+	for (int i = 0; i < seqNumber; ++i) {
+		std::cout << "Alignment score: " << host_results[i] << std::endl;
+	}
 
 }
