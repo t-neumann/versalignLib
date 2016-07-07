@@ -146,9 +146,6 @@ int main(int argc, char *argv[]) {
 
 	run_ocl_test(reads, refs, seqNumber, max_read_length, max_ref_length);
 
-	return 0;
-
-
 //	AVXKernel * avxkernel = new AVXKernel();
 //
 //	short * avxscores = new short[seqNumber];
@@ -205,7 +202,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		//ssekernel->score_alignment_needleman_wunsch(reads, refs, scores);
-		ssekernel->score_alignment(reads_batch, refs_batch, scores);
+		ssekernel->score_alignment_needleman_wunsch(reads_batch, refs_batch, scores);
 		for (int j = 0; j < 8; ++j) {
 			cout << "Read:\t" << reads_batch[j] << std::endl <<
 					"Ref:\t" << refs_batch[j] << std::endl <<

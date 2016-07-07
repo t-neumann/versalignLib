@@ -148,7 +148,7 @@ void run_ocl_test(char const * const * const reads, char const * const * const r
 
 	std::cout << "Running \"score_alignment_smith_waterman\" Kernel...\n";
 	//alternative way to run the kernel
-	cl::Kernel kernel_print = cl::Kernel(program,"score_alignment_smith_waterman");
+	cl::Kernel kernel_print = cl::Kernel(program,"score_alignment_needleman_wunsch");
 	kernel_print.setArg(0,read_buffer);
 	kernel_print.setArg(1,ref_buffer);
 	kernel_print.setArg(2,result_buffer);
