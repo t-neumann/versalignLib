@@ -80,9 +80,9 @@ void SWKernel::score_alignment_needleman_wunsch(char const * const * const read,
 
 			matrix[current_row * (refLength + 1) + ref_pos + 1] = cur;
 
-			std::cout << cur << " ";
+			//std::cout << cur << " ";
 		}
-		std::cout << std::endl;
+		//std::cout << std::endl;
 
 		globalMax = max(globalMax, matrix[current_row * (refLength + 1) + refLength]);
 

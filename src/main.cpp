@@ -174,61 +174,61 @@ int main(int argc, char *argv[]) {
 //
 //	delete avxkernel;
 
-	SSEKernel * ssekernel = new SSEKernel();
-
-	short * scores = new short[seqNumber];
-
-	ssekernel->init(max_read_length, max_ref_length);
-
+//	SSEKernel * ssekernel = new SSEKernel();
+//
+//	short * scores = new short[seqNumber];
+//
+//	ssekernel->init(max_read_length, max_ref_length);
+//
 	Timer timer;
-
-	timer.start();
-
-	Alignment * alignments = 0;
-
-	for (int i = 0; i < 2; ++i) {
-
-		char * * reads_batch = new char * [8];
-		for (int j = 0; j < 8; ++j) {
-			reads_batch[j] = new char [max_read_length];
-			memcpy(reads_batch[j],reads[i * 8 + j], max_read_length * sizeof(char));
-			//reads_batch[j] = reads[i * 8 + j];
-		}
-		char * * refs_batch = new char * [8];
-		for (int j = 0; j < 8; ++j) {
-			refs_batch[j] = new char [max_ref_length];
-			memcpy(refs_batch[j],refs[i * 8 + j], max_ref_length * sizeof(char));
-			//refs_batch[j] = refs[i * 8 + j];
-		}
-
-		//ssekernel->score_alignment_needleman_wunsch(reads, refs, scores);
-		ssekernel->score_alignment_needleman_wunsch(reads_batch, refs_batch, scores);
-		for (int j = 0; j < 8; ++j) {
-			cout << "Read:\t" << reads_batch[j] << std::endl <<
-					"Ref:\t" << refs_batch[j] << std::endl <<
-					"Score:\t" << scores[j] << std::endl;
-		}
-//		std::cout << std::endl << "Batch end" << std::endl;
-//		alignments = new Alignment[8];
-//		ssekernel->calc_alignment_needleman_wunsch(reads_batch, refs_batch, alignments);
-		//ssekernel->calc_alignment_needleman_wunsch(reads, refs, alignments);
-//		ssekernel->calc_alignment_needleman_wunsch(reads_batch, refs_batch, alignments);
-
+//
+//	timer.start();
+//
+//	Alignment * alignments = 0;
+//
+//	for (int i = 0; i < 2; ++i) {
+//
+//		char * * reads_batch = new char * [8];
 //		for (int j = 0; j < 8; ++j) {
-//			std::cout << "==================" << std::endl << "\"";
-//			std::cout << alignments[j].read + alignments[j].readStart;
-//			std::cout << "\"" << std::endl << "\"";
-//			std::cout << alignments[j].ref + alignments[j].refStart;
-//			std::cout << "\"" << std::endl << "==================" << std::endl;
+//			reads_batch[j] = new char [max_read_length];
+//			memcpy(reads_batch[j],reads[i * 8 + j], max_read_length * sizeof(char));
+//			//reads_batch[j] = reads[i * 8 + j];
+//		}
+//		char * * refs_batch = new char * [8];
+//		for (int j = 0; j < 8; ++j) {
+//			refs_batch[j] = new char [max_ref_length];
+//			memcpy(refs_batch[j],refs[i * 8 + j], max_ref_length * sizeof(char));
+//			//refs_batch[j] = refs[i * 8 + j];
 //		}
 //
-	}
-
-	timer.stop();
-
-	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
-
-	return 0;
+//		//ssekernel->score_alignment_needleman_wunsch(reads, refs, scores);
+//		ssekernel->score_alignment_needleman_wunsch(reads_batch, refs_batch, scores);
+//		for (int j = 0; j < 8; ++j) {
+//			cout << "Read:\t" << reads_batch[j] << std::endl <<
+//					"Ref:\t" << refs_batch[j] << std::endl <<
+//					"Score:\t" << scores[j] << std::endl;
+//		}
+////		std::cout << std::endl << "Batch end" << std::endl;
+////		alignments = new Alignment[8];
+////		ssekernel->calc_alignment_needleman_wunsch(reads_batch, refs_batch, alignments);
+//		//ssekernel->calc_alignment_needleman_wunsch(reads, refs, alignments);
+////		ssekernel->calc_alignment_needleman_wunsch(reads_batch, refs_batch, alignments);
+//
+////		for (int j = 0; j < 8; ++j) {
+////			std::cout << "==================" << std::endl << "\"";
+////			std::cout << alignments[j].read + alignments[j].readStart;
+////			std::cout << "\"" << std::endl << "\"";
+////			std::cout << alignments[j].ref + alignments[j].refStart;
+////			std::cout << "\"" << std::endl << "==================" << std::endl;
+////		}
+////
+//	}
+//
+//	timer.stop();
+//
+//	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
+//
+//	return 0;
 
 	// Premature return for SSE testing
 
@@ -236,64 +236,64 @@ int main(int argc, char *argv[]) {
 //		cout << reads[i] << ":\t" << scores[i] << endl;
 //	}
 
-	delete ssekernel; ssekernel = 0;
-	delete scores; scores = 0;
+//	delete ssekernel; ssekernel = 0;
+//	delete scores; scores = 0;
 
 	SWKernel * kernel = new SWKernel();
 	kernel->init(max_read_length, max_ref_length);
 
-//	for (int i = 0; i < seqNumber; ++i) {
-//
-//		short * const score = (short * const)malloc(sizeof(short));
-//		memset(score, 0, sizeof(short));
-//
-//		char const * const * const read = reads + i;
-//		char const * const * const ref = refs + i;
-//
-//		timer.start();
-//
-//		for (int j = 0; j < 1; ++j) {
-//
-//			//for (int k = 0; k < 8; ++k) {
-//
-//				//kernel->score_alignment(read, ref, score);
-//				kernel->score_alignment_needleman_wunsch(read, ref, score);
-//			//}
-//
-//		}
-//
-//		cout << *(read) << std::endl << *(ref) << std::endl << "Score:\t" << *score << endl;
-//		free(score);
-//
-//		timer.stop();
-//
-//		cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
-//	}
-
-	alignments = new Alignment[seqNumber];
-
 	for (int i = 0; i < seqNumber; ++i) {
+
+		short * const score = (short * const)malloc(sizeof(short));
+		memset(score, 0, sizeof(short));
+
 		char const * const * const read = reads + i;
 		char const * const * const ref = refs + i;
 
-		std::cout << "Read: " << *read << std::endl;
-		std::cout << "Ref: " << *ref << std::endl;
-
 		timer.start();
 
-		kernel->calc_alignment_needleman_wunsch(read, ref, &alignments[i]);
+		for (int j = 0; j < 1; ++j) {
+
+			//for (int k = 0; k < 8; ++k) {
+
+				//kernel->score_alignment(read, ref, score);
+				kernel->score_alignment_needleman_wunsch(read, ref, score);
+			//}
+
+		}
+
+		cout << *(read) << std::endl << *(ref) << std::endl << "Score:\t" << *score << endl;
+		free(score);
 
 		timer.stop();
 
-		cout << "Alignment took " << timer.getElapsedTimeInMicroSec() << " ms" << endl;
-
-		std::cout << "==================" << std::endl << "\"";
-		std::cout << alignments[i].read + alignments[i].readStart;
-		std::cout << "\"" << std::endl << "\"";
-		std::cout << alignments[i].ref + alignments[i].refStart;
-		std::cout << "\"" << std::endl << "==================" << std::endl;
-
+		cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
 	}
+
+//	alignments = new Alignment[seqNumber];
+//
+//	for (int i = 0; i < seqNumber; ++i) {
+//		char const * const * const read = reads + i;
+//		char const * const * const ref = refs + i;
+//
+//		std::cout << "Read: " << *read << std::endl;
+//		std::cout << "Ref: " << *ref << std::endl;
+//
+//		timer.start();
+//
+//		kernel->calc_alignment_needleman_wunsch(read, ref, &alignments[i]);
+//
+//		timer.stop();
+//
+//		cout << "Alignment took " << timer.getElapsedTimeInMicroSec() << " ms" << endl;
+//
+//		std::cout << "==================" << std::endl << "\"";
+//		std::cout << alignments[i].read + alignments[i].readStart;
+//		std::cout << "\"" << std::endl << "\"";
+//		std::cout << alignments[i].ref + alignments[i].refStart;
+//		std::cout << "\"" << std::endl << "==================" << std::endl;
+//
+//	}
 
 	delete kernel; kernel = 0;
 

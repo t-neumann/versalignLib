@@ -78,10 +78,12 @@ void run_ocl_test(char const * const * const reads, char const * const * const r
 	stringstream compilerDefines;
 	compilerDefines << "-D read_length=" << max_read_length
 				<< " -D ref_length=" << max_ref_length
+				<< " -D aln_length=" << max_ref_length + max_read_length
 				<< " -D score_gap_read=-3"
 				<< " -D score_gap_ref=-3"
 				<< " -D score_match=2"
 				<< " -D score_mismatch=-1";
+
 
 	cl::Program program(context,sources);
 
@@ -123,7 +125,9 @@ void run_ocl_test(char const * const * const reads, char const * const * const r
 
 	char * host_reads = new char[seqNumber*max_read_length];
 	char * host_refs = new char[seqNumber*max_ref_length];
-	short * host_results = new short[seqNumber]();
+	//short * host_results = new short[seqNumber]();
+	char * host_results = new char[(max_ref_length + max_read_length) * 2 * seqNumber]();
+	short * host_indices = new short[2 * 16]();
 
 	for (int i = 0; i < seqNumber; ++i) {
 			memcpy(&host_reads[i * max_read_length], reads[i], sizeof(char) * max_read_length);
@@ -144,19 +148,23 @@ void run_ocl_test(char const * const * const reads, char const * const * const r
 
 	cl::Buffer read_buffer(context,CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,sizeof(char)*seqNumber*max_read_length,host_reads);
 	cl::Buffer ref_buffer(context,CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,sizeof(char)*seqNumber*max_ref_length,host_refs);
-	cl::Buffer result_buffer(context,CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,sizeof(short)*seqNumber,host_results);
+	cl::Buffer result_buffer(context,CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,sizeof(char)*(max_ref_length + max_read_length) * 2 * seqNumber,host_results);
+	cl::Buffer index_buffer(context,CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,sizeof(short)*seqNumber*2,host_indices);
 
 	std::cout << "Running \"score_alignment_smith_waterman\" Kernel...\n";
 	//alternative way to run the kernel
-	cl::Kernel kernel_print = cl::Kernel(program,"score_alignment_needleman_wunsch");
+	cl::Kernel kernel_print = cl::Kernel(program,"calc_alignment_smith_waterman");
 	kernel_print.setArg(0,read_buffer);
 	kernel_print.setArg(1,ref_buffer);
 	kernel_print.setArg(2,result_buffer);
+	kernel_print.setArg(3,index_buffer);
 	queue.enqueueNDRangeKernel(kernel_print,cl::NullRange,cl::NDRange(1),cl::NullRange);
 	queue.finish();
 
 	for (int i = 0; i < seqNumber; ++i) {
-		std::cout << "Alignment score: " << host_results[i] << std::endl;
+	//	std::cout << "Alignment score: " << host_results[i] << std::endl;
+		std::cout << "Read1: " << host_results[i * (max_ref_length + max_read_length) + host_indices[i]] << std::endl;
+		std::cout << "Read2: " << host_results[(i + 1) * (max_ref_length + max_read_length) + host_indices[i + 1]] << std::endl;
 	}
 
 }
