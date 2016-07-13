@@ -1,5 +1,7 @@
 #include "ocl_testing.h"
-#include "test_kernel.h"
+#include "opencl_definitions.h"
+#include "scoring_kernels.h"
+#include "alignment_kernels.h"
 #include "AlignmentKernel.h"
 
 #include <sstream>
@@ -7,7 +9,9 @@
 
 using std::stringstream;
 
-extern char const test_kernel[];
+extern char const opencl_definitions[];
+extern char const scoring_kernels[];
+extern char const alignment_kernels[];
 
 std::string get_device_type(cl_int const & device_type) {
 	return device_type == CL_DEVICE_TYPE_GPU ? "GPU" : "CPU";
@@ -66,10 +70,10 @@ void run_ocl_test(char const * const * const reads, char const * const * const r
 
 	//std::stringstream kernel_code_hex;
 	//kernel_code_hex << test_kernel;
-	std::string kernel_code_hex (test_kernel);
+	//std::string kernel_code_hex (test_kernel);
 
 	std::stringstream test;
-	test << kernel_code_hex;
+	test << opencl_definitions << scoring_kernels << alignment_kernels;
 
 	std::string input (test.str());
 

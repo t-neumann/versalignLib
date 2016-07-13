@@ -5,6 +5,8 @@
  *      Author: tobias.neumann
  */
 
+#include "AlignmentKernel.h"
+#include "CustomParameters.h"
 #include "Kernels/plain/SWKernel.h"
 #include "Kernels/AVX-SSE/SSEKernel.h"
 //#include "Kernels/AVX-SSE/AVXKernel.h"
@@ -20,12 +22,7 @@ using std::cout;
 using std::string;
 using std::endl;
 
-//#ifdef __APPLE__
-//    #include "OpenCL/opencl.h"
-//#else
-//    #include <CL/cl.h>
-//#endif
-
+CustomParameters parameters;
 
 int main(int argc, char *argv[]) {
 
@@ -144,9 +141,16 @@ int main(int argc, char *argv[]) {
 
 	size_t max_ref_length =	pad(refs, seqNumber, REF_PAD);
 
-	run_ocl_test(reads, refs, seqNumber, max_read_length, max_ref_length);
+	AlignmentParameters * _parameters = 0;
 
-	return 0;
+	parameters.read_length = max_read_length;
+	parameters.ref_length = max_ref_length;
+
+	SetConfig(&parameters);
+
+//	run_ocl_test(reads, refs, seqNumber, max_read_length, max_ref_length);
+
+//	return 0;
 
 //	AVXKernel * avxkernel = new AVXKernel();
 //
@@ -242,7 +246,7 @@ int main(int argc, char *argv[]) {
 //	delete scores; scores = 0;
 
 	SWKernel * kernel = new SWKernel();
-	kernel->init(max_read_length, max_ref_length);
+	//kernel->init(max_read_length, max_ref_length);
 
 //	for (int i = 0; i < seqNumber; ++i) {
 //

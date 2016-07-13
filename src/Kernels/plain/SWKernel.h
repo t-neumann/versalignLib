@@ -9,6 +9,7 @@
 #define SWKERNEL_H_
 
 #include "AlignmentKernel.h"
+#include "AlignmentParameters.h"
 
 #include <cstring>
 #include <cmath>
@@ -55,16 +56,41 @@ const char char_to_score[ASCII_ALPHABET] = {
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	};
 
+void SetConfig(AlignmentParameters * parameters);
+
 class SWKernel: public AlignmentKernel {
 
 public:
 
 	SWKernel() {
 
-		scoreGapRead = -3;
-		scoreGapRef = -3;
-		scoreMatch = 2;
-		scoreMismatch = -1;
+		bool exception = false;
+
+		Parameters.has_key("score_match") ? scoreMatch = Parameters.param_int("score_match") : exception = true;
+		Parameters.has_key("score_mismatch") ? scoreMismatch = Parameters.param_int("score_mismatch") : exception = true;
+		Parameters.has_key("score_gap_read") ? scoreGapRead = Parameters.param_int("score_gap_read") : exception = true;
+		Parameters.has_key("score_gap_ref") ? scoreGapRef = Parameters.param_int("score_gap_ref") : exception = true;
+		Parameters.has_key("read_length") ? readLength = Parameters.param_int("read_length") : exception = true;
+		Parameters.has_key("ref_length") ? refLength = Parameters.param_int("ref_length") : exception = true;
+
+		alnLength = refLength + readLength;
+
+		if (exception) {
+			throw "Cannot instantiate Kernel. Lacking parameters";
+		}
+
+		std::cout << "Match: " << scoreMatch
+				<< "\nMismatch: " << scoreMismatch
+				<< "\nGap_read: " << scoreGapRead
+				<< "\nGap_ref: " << scoreGapRef
+				<< "\nRead_length: " << readLength
+				<< "\nRef_length: " << refLength
+				<< "\nAln_length: " << alnLength << std::endl;
+
+		//scoreGapRead = -3;
+		//scoreGapRef = -3;
+		//scoreMatch = 2;
+		//scoreMismatch = -1;
 
 		short tmp[SCORE_CASE][SCORE_CASE]= {
 				// non ATGCN
@@ -112,6 +138,14 @@ public:
 
 	virtual void calc_alignment_needleman_wunsch(char const * const * const read,
 			char const * const * const ref, Alignment * const alignment);
+
+	virtual void compute_alignment(int const & opt, int const & aln_number, char const * const * const reads,
+				char const * const * const refs, Alignment * const alignments) {
+	}
+
+	virtual void score_alignment(int const & opt, int const & aln_number, char const * const * const reads,
+				char const * const * const refs, short * const scores) {
+	}
 
 private:
 

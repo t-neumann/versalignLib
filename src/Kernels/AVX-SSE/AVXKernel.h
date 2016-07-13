@@ -30,7 +30,7 @@
 #include <immintrin.h>
 #include <climits>
 
-class AVXKernel: public AlignmentKernel {
+class AVXKernel {
 
 public:
 	AVXKernel() {

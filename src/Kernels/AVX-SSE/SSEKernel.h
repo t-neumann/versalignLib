@@ -30,7 +30,7 @@
 #include <immintrin.h>
 #include <climits>
 
-class SSEKernel: public AlignmentKernel {
+class SSEKernel {
 
 public:
 	SSEKernel() {
