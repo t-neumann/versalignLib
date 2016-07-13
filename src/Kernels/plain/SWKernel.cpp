@@ -147,9 +147,9 @@ void SWKernel::calculate_alignment_matrix(char const * const * const read,
 				max_score = cur;
 			}
 
-			std::cout << cur << " ";
+			//std::cout << cur << " ";
 		}
-		std::cout << std::endl;
+		//std::cout << std::endl;
 
 		prev_row_score = current_row_score;
 		(++current_row_score) &= 1;
@@ -298,13 +298,13 @@ void SWKernel::calc_alignment(char const * const * const read,
 
 	calculate_alignment_matrix(read, ref, matrix, best_coordinates);
 
-	std::cout << "Matrix:" << std::endl;
-	for (int i = 0; i < readLength + 1; ++i) {
-		for (int j = 0; j < refLength + 1; ++j) {
-			std::cout << matrix[i * (refLength + 1) + j] << " ";
-		}
-		std::cout << std::endl;
-	}
+//	std::cout << "Matrix:" << std::endl;
+//	for (int i = 0; i < readLength + 1; ++i) {
+//		for (int j = 0; j < refLength + 1; ++j) {
+//			std::cout << matrix[i * (refLength + 1) + j] << " ";
+//		}
+//		std::cout << std::endl;
+//	}
 
 	char * alignments = new char[alnLength * 2];
 

@@ -1,5 +1,6 @@
 #include "ocl_testing.h"
 #include "test_kernel.h"
+#include "AlignmentKernel.h"
 
 #include <sstream>
 #include <cstdio>
@@ -134,8 +135,8 @@ void run_ocl_test(char const * const * const reads, char const * const * const r
 			memcpy(&host_refs[i * max_ref_length], refs[i], sizeof(char) * max_ref_length);
 		}
 
-	printf("Reads %.*s\n", max_read_length, host_reads);
-	printf("Refs %.*s\n", max_ref_length, host_refs);
+	//printf("Reads %.*s\n", max_read_length, host_reads);
+	//printf("Refs %.*s\n", max_ref_length, host_refs);
 
 	//printf("A %s B %s ", host_reads, host_refs);
 	//std::cout << host_reads << std::endl << host_refs << std::endl;
@@ -146,14 +147,15 @@ void run_ocl_test(char const * const * const reads, char const * const * const r
 	//queue.enqueueMapBuffer(read_buffer,CL_TRUE,CL_MAP_READ,0,sizeof(char)*seqNumber*max_read_length);
 	//queue.enqueueMapBuffer(ref_buffer,CL_TRUE,CL_MAP_READ,0,sizeof(int)*seqNumber*max_ref_length);
 
+	const int aln_length = max_ref_length + max_read_length;
 	cl::Buffer read_buffer(context,CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,sizeof(char)*seqNumber*max_read_length,host_reads);
 	cl::Buffer ref_buffer(context,CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,sizeof(char)*seqNumber*max_ref_length,host_refs);
-	cl::Buffer result_buffer(context,CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,sizeof(char)*(max_ref_length + max_read_length) * 2 * seqNumber,host_results);
+	cl::Buffer result_buffer(context,CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,sizeof(char)*aln_length * 2 * seqNumber,host_results);
 	cl::Buffer index_buffer(context,CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,sizeof(short)*seqNumber*2,host_indices);
 
 	std::cout << "Running \"score_alignment_smith_waterman\" Kernel...\n";
 	//alternative way to run the kernel
-	cl::Kernel kernel_print = cl::Kernel(program,"calc_alignment_smith_waterman");
+	cl::Kernel kernel_print = cl::Kernel(program,"calc_alignment_needleman_wunsch");
 	kernel_print.setArg(0,read_buffer);
 	kernel_print.setArg(1,ref_buffer);
 	kernel_print.setArg(2,result_buffer);
@@ -161,10 +163,28 @@ void run_ocl_test(char const * const * const reads, char const * const * const r
 	queue.enqueueNDRangeKernel(kernel_print,cl::NullRange,cl::NDRange(1),cl::NullRange);
 	queue.finish();
 
+	Alignment * alignment = new Alignment[seqNumber];
+
 	for (int i = 0; i < seqNumber; ++i) {
 	//	std::cout << "Alignment score: " << host_results[i] << std::endl;
-		std::cout << "Read1: " << host_results[i * (max_ref_length + max_read_length) + host_indices[i]] << std::endl;
-		std::cout << "Read2: " << host_results[(i + 1) * (max_ref_length + max_read_length) + host_indices[i + 1]] << std::endl;
-	}
+	//	std::cout << "Read" << i << ": " << host_results[i * (max_ref_length + max_read_length) + host_indices[i]] << std::endl;
+	//	std::cout << "Ref" << i << ": " << host_results[(i + 1) * (max_ref_length + max_read_length) + host_indices[i + 1]] << std::endl;
+		alignment[i].read = new char[aln_length];
+		alignment[i].ref = new char[aln_length];
 
+		memcpy(alignment[i].read, host_results + 2 * i * aln_length, aln_length * sizeof(char));
+		memcpy(alignment[i].ref, host_results + 2 * i * aln_length + aln_length, aln_length * sizeof(char));
+
+		alignment[i].readStart = host_indices[2 * i];
+		alignment[i].refStart = host_indices[2 * i + 1];
+
+		alignment[i].readEnd = aln_length - 1;
+		alignment[i].refEnd = aln_length - 1;
+
+		std::cout << "==================" << std::endl << "\"";
+		std::cout << alignment[i].read + alignment[i].readStart;
+		std::cout << "\"" << std::endl << "\"";
+		std::cout << alignment[i].ref + alignment[i].refStart;
+		std::cout << "\"" << std::endl << "==================" << std::endl;
+	}
 }
