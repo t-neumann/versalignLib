@@ -1,12 +1,12 @@
 /*
- * DefaultKernel_dllexport.cpp
+ * SSEKernel_dllexport.cpp
  *
  *  Created on: Jul 13, 2016
  *      Author: Tobias Neumann
  *       Email: tobias.neumann.at@gmail.com
  */
 
-#include "DefaultKernel.h"
+#include "SSEKernel.h"
 #include "AlignmentKernel.h"
 
 #ifdef _WIN32
@@ -17,7 +17,7 @@
 
 extern "C" dllexport AlignmentKernel * spawn_alignment_kernel() {
 
-	AlignmentKernel * kernel = new DefaultKernel();
+	AlignmentKernel * kernel = new SSEKernel();
 
 	return kernel;
 }
@@ -30,7 +30,7 @@ extern "C" dllexport void set_parameters(AlignmentParameters * parameters) {
 }
 
 
-extern "C" dllexport void delete_alignment_kernel(DefaultKernel * instance) {
+extern "C" dllexport void delete_alignment_kernel(SSEKernel * instance) {
 	if (instance != 0) {
 		delete instance;
 		instance = 0;

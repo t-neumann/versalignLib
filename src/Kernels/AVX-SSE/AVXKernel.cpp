@@ -29,7 +29,194 @@ std::string __m256i_toString(const __m256i var) {
     return sstr.str();
 }
 
-void AVXKernel::calc_alignment_matrix(char const * const * const read,
+void AVXKernel::compute_alignments(int const & opt, int const & aln_number, char const * const * const reads,
+		char const * const * const refs, Alignment * const alignments) {
+
+	int alignment_algorithm = opt & 0xF;
+
+	fp_alignment_call alignment_call = 0;
+
+	switch(alignment_algorithm) {
+	case 0:
+		alignment_call = &AVXKernel::calc_alignment_smith_waterman;
+		//calc_alignment_smith_waterman(reads, refs, alignments);
+		break;
+	case 1:
+		alignment_call = &AVXKernel::calc_alignment_needleman_wunsch;
+		//calc_alignment_needleman_wunsch(reads, refs, alignments);
+		break;
+	default:
+		// Unsupported mode
+		break;
+	}
+
+	if (alignment_call != 0) {
+
+		int num_batches = aln_number / AVX_SIZE;
+		int mod = aln_number % AVX_SIZE;
+
+		int cur_alignment = 0;
+
+		//		std::cout << "Started SSE aligning...\n"
+		//				<< "# alignments:\t" << aln_number
+		//				<< "\n# batches:\t" << num_batches
+		//				<< "\n# overflow:\t" << mod << std::endl;
+
+		while (num_batches > 0) {
+			(this->*alignment_call)(reads + cur_alignment,refs + cur_alignment,alignments + cur_alignment);
+
+			//			for (int i = cur_alignment; i < cur_alignment + SSE_SIZE; ++i) {
+			//				std::cout << "==================" << std::endl << "\"";
+			//				std::cout << alignments[i].read + alignments[i].readStart;
+			//				std::cout << "\"" << std::endl << "\"";
+			//				std::cout << alignments[i].ref + alignments[i].refStart;
+			//				std::cout << "\"" << std::endl << "==================" << std::endl;
+			//			}
+			cur_alignment += AVX_SIZE;
+			--num_batches;
+		}
+
+		// Number of alignments not multiple of SSE_SIZE (8 alignments in SIMD registers)
+		// -> Need to fillup remaining slots with \0 sequences
+
+		if (mod != 0) {
+
+			Alignment * alignment_overflow = new Alignment[AVX_SIZE];
+
+			char const * * const read_overflow = new const char * [AVX_SIZE];
+			char const * * const ref_overflow = new const char * [AVX_SIZE];
+
+			char const * null_read = new char[readLength]();
+			char const * null_ref = new char[refLength]();
+
+			int overflow_fill = 0;
+
+			while (overflow_fill < mod) {
+				*(read_overflow + overflow_fill) = *(reads + cur_alignment + overflow_fill);
+				*(ref_overflow + overflow_fill) = *(refs + cur_alignment + overflow_fill);
+				++overflow_fill;
+			}
+
+			while (overflow_fill < AVX_SIZE) {
+				*(read_overflow + overflow_fill) = null_read;
+				*(ref_overflow + overflow_fill) = null_ref;
+				++overflow_fill;
+			}
+
+			(this->*alignment_call)(read_overflow,ref_overflow,alignment_overflow);
+
+			for (int i = 0; i < mod; ++i) {
+				alignments[cur_alignment + i] = alignment_overflow[i];
+
+				//				std::cout << "==================" << std::endl << "\"";
+				//				std::cout << alignments[cur_alignment + i].read + alignments[cur_alignment + i].readStart;
+				//				std::cout << "\"" << std::endl << "\"";
+				//				std::cout << alignments[cur_alignment + i].ref + alignments[cur_alignment + i].refStart;
+				//				std::cout << "\"" << std::endl << "==================" << std::endl;
+			}
+
+			delete[] alignment_overflow; alignment_overflow = 0;
+			delete[] null_read; null_read = 0;
+			delete[] null_ref; null_ref = 0;
+			delete[] read_overflow;
+			delete[] ref_overflow;
+		}
+	}
+}
+
+void AVXKernel::score_alignments(int const & opt, int const & aln_number, char const * const * const reads,
+		char const * const * const refs, short * const scores) {
+
+	// Need malloc32 aligned short arrays for AVX result storage
+	short * scores32 = 0;
+	malloc32(scores32, sizeof(short) * aln_number,32);
+
+	int alignment_algorithm = opt & 0xF;
+
+	fp_scoring_call scoring_call = 0;
+
+	switch(alignment_algorithm) {
+	case 0:
+		scoring_call = &AVXKernel::score_alignment_smith_waterman;
+		break;
+	case 1:
+		scoring_call = &AVXKernel::score_alignment_needleman_wunsch;
+		break;
+	default:
+		// Unsupported mode
+		break;
+	}
+
+	if (scoring_call != 0) {
+
+		int num_batches = aln_number / AVX_SIZE;
+		int mod = aln_number % AVX_SIZE;
+
+		int cur_alignment = 0;
+
+				std::cout << "Started AVX2 scoring...\n"
+						<< "# alignments:\t" << aln_number
+						<< "\n# batches:\t" << num_batches
+						<< "\n# overflow:\t" << mod << std::endl;
+
+		while (num_batches > 0) {
+			(this->*scoring_call)(reads + cur_alignment,refs + cur_alignment,scores32 + cur_alignment);
+			for (int i = cur_alignment; i < cur_alignment + AVX_SIZE; ++i) {
+				std::cout << "Score:\t" << scores32[i] << std::endl;
+			}
+			cur_alignment += AVX_SIZE;
+			--num_batches;
+		}
+
+		memcpy(scores, scores32, sizeof(short) * (aln_number / AVX_SIZE) * AVX_SIZE);
+
+		free(scores32);
+
+		// Number of alignments not multiple of AVX_SIZE (16 alignments in SIMD registers)
+		// -> Need to fillup remaining slots with \0 sequences
+
+		if (mod != 0) {
+
+			malloc32(scores32, sizeof(short) * AVX_SIZE,32);
+
+			char const * * const read_overflow = new const char * [AVX_SIZE];
+			char const * * const ref_overflow = new const char * [AVX_SIZE];
+
+			char const * null_read = new char[readLength]();
+			char const * null_ref = new char[refLength]();
+
+			int overflow_fill = 0;
+
+			while (overflow_fill < mod) {
+				*(read_overflow + overflow_fill) = *(reads + cur_alignment + overflow_fill);
+				*(ref_overflow + overflow_fill) = *(refs + cur_alignment + overflow_fill);
+				++overflow_fill;
+			}
+
+			while (overflow_fill < AVX_SIZE) {
+				*(read_overflow + overflow_fill) = null_read;
+				*(ref_overflow + overflow_fill) = null_ref;
+				++overflow_fill;
+			}
+			(this->*scoring_call)(read_overflow,ref_overflow,scores32);
+
+			for (int i = 0; i < mod; ++i) {
+				scores[cur_alignment + i] = scores32[i];
+				std::cout << "Score:\t" << scores[cur_alignment + i] << std::endl;
+
+			}
+
+			free(scores32);
+			delete[] null_read; null_read = 0;
+			delete[] null_ref; null_ref = 0;
+			delete[] read_overflow;
+			delete[] ref_overflow;
+		}
+	}
+
+}
+
+void AVXKernel::calc_alignment_matrix_smith_waterman(char const * const * const read,
 		char const * const * const ref, short * const matrix, short * const best_coordinates) {
 
 	// Tracking best read and ref positions
@@ -405,7 +592,7 @@ void AVXKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 	_mm256_store_si256((__m256i *)best_coordinates + 1, best_ref_pos);
 }
 
-void AVXKernel::calc_alignment(char const * const * const read,
+void AVXKernel::calc_alignment_smith_waterman(char const * const * const read,
 				char const * const * const ref, Alignment * const alignment) {
 
 	std::cout << "Aln Length:\t" << alnLength << std::endl;
@@ -420,7 +607,7 @@ void AVXKernel::calc_alignment(char const * const * const read,
 
 	std::cout << "Score matrix" << std::endl;
 
-	calc_alignment_matrix(read, ref, matrix, best_coordinates);
+	calc_alignment_matrix_smith_waterman(read, ref, matrix, best_coordinates);
 
 	for (int SSE_register = 0; SSE_register < AVX_SIZE; ++SSE_register) {
 		std::cout << "Matrix:" << std::endl;
@@ -604,7 +791,7 @@ void AVXKernel::calc_alignment_needleman_wunsch(char const * const * const read,
 }
 
 
-void AVXKernel::score_alignment (char const * const * const read, char const * const * const ref, short * const scores) {
+void AVXKernel::score_alignment_smith_waterman (char const * const * const read, char const * const * const ref, short * const scores) {
 
 	__m256i max_score = x_zeros;
 
@@ -697,6 +884,7 @@ void AVXKernel::score_alignment (char const * const * const read, char const * c
 	free(matrix);
 
 	_mm256_store_si256((__m256i *)scores, max_score);
+
 }
 
 

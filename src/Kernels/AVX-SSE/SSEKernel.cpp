@@ -9,25 +9,217 @@
 #include <memory.h>
 #include <iostream>
 #include <cstdio>
+#include <iostream>
+
+// Change to only include in debug mode
 #include <sstream>
-#include "../../util/versalignUtil.h"
 
 #define SCORING_ROWS 2
 
-//void print_sse_char (__m128i sse) {
-//	short * tmp;
-//	malloc16(tmp, sizeof(short) * 8, 16);
-//
-//	_mm_store_si128((__m128i *)tmp, sse);
-//
-//	for (int i = 0; i < SSE_SIZE; ++i) {
-//		int character = tmp[i];
-//		std::cout << i << ":" << (char)character << " ";
-//	}
-//	std::cout << std::endl;
-//}
+template <typename T>
+std::string __m128i_toString(const __m128i var) {
+	std::stringstream sstr;
+	const T* values = (const T*) &var;
+	if (sizeof(T) == 1) {
+		for (unsigned int i = 0; i < sizeof(__m128i); i++) {
+			sstr << (int) values[i] << " ";
+		}
+	} else {
+		for (unsigned int i = 0; i < sizeof(__m128i) / sizeof(T); i++) {
+			sstr << values[i] << " ";
+		}
+	}
+	return sstr.str();
+}
 
-void SSEKernel::calc_alignment_matrix(char const * const * const read,
+void SSEKernel::compute_alignments(int const & opt, int const & aln_number, char const * const * const reads,
+		char const * const * const refs, Alignment * const alignments) {
+
+	int alignment_algorithm = opt & 0xF;
+
+	fp_alignment_call alignment_call = 0;
+
+	switch(alignment_algorithm) {
+	case 0:
+		alignment_call = &SSEKernel::calc_alignment_smith_waterman;
+		//calc_alignment_smith_waterman(reads, refs, alignments);
+		break;
+	case 1:
+		alignment_call = &SSEKernel::calc_alignment_needleman_wunsch;
+		//calc_alignment_needleman_wunsch(reads, refs, alignments);
+		break;
+	default:
+		// Unsupported mode
+		break;
+	}
+
+	if (alignment_call != 0) {
+
+		int num_batches = aln_number / SSE_SIZE;
+		int mod = aln_number % SSE_SIZE;
+
+		int cur_alignment = 0;
+
+		//		std::cout << "Started SSE aligning...\n"
+		//				<< "# alignments:\t" << aln_number
+		//				<< "\n# batches:\t" << num_batches
+		//				<< "\n# overflow:\t" << mod << std::endl;
+
+		while (num_batches > 0) {
+			(this->*alignment_call)(reads + cur_alignment,refs + cur_alignment,alignments + cur_alignment);
+
+			//			for (int i = cur_alignment; i < cur_alignment + SSE_SIZE; ++i) {
+			//				std::cout << "==================" << std::endl << "\"";
+			//				std::cout << alignments[i].read + alignments[i].readStart;
+			//				std::cout << "\"" << std::endl << "\"";
+			//				std::cout << alignments[i].ref + alignments[i].refStart;
+			//				std::cout << "\"" << std::endl << "==================" << std::endl;
+			//			}
+			cur_alignment += SSE_SIZE;
+			--num_batches;
+		}
+
+		// Number of alignments not multiple of SSE_SIZE (8 alignments in SIMD registers)
+		// -> Need to fillup remaining slots with \0 sequences
+
+		if (mod != 0) {
+
+			Alignment * alignment_overflow = new Alignment[SSE_SIZE];
+
+			char const * * const read_overflow = new const char * [SSE_SIZE];
+			char const * * const ref_overflow = new const char * [SSE_SIZE];
+
+			char const * null_read = new char[readLength]();
+			char const * null_ref = new char[refLength]();
+
+			int overflow_fill = 0;
+
+			while (overflow_fill < mod) {
+				*(read_overflow + overflow_fill) = *(reads + cur_alignment + overflow_fill);
+				*(ref_overflow + overflow_fill) = *(refs + cur_alignment + overflow_fill);
+				++overflow_fill;
+			}
+
+			while (overflow_fill < SSE_SIZE) {
+				*(read_overflow + overflow_fill) = null_read;
+				*(ref_overflow + overflow_fill) = null_ref;
+				++overflow_fill;
+			}
+
+			(this->*alignment_call)(read_overflow,ref_overflow,alignment_overflow);
+
+			for (int i = 0; i < mod; ++i) {
+				alignments[cur_alignment + i] = alignment_overflow[i];
+
+				//				std::cout << "==================" << std::endl << "\"";
+				//				std::cout << alignments[cur_alignment + i].read + alignments[cur_alignment + i].readStart;
+				//				std::cout << "\"" << std::endl << "\"";
+				//				std::cout << alignments[cur_alignment + i].ref + alignments[cur_alignment + i].refStart;
+				//				std::cout << "\"" << std::endl << "==================" << std::endl;
+			}
+
+			delete[] alignment_overflow; alignment_overflow = 0;
+			delete[] null_read; null_read = 0;
+			delete[] null_ref; null_ref = 0;
+			delete[] read_overflow;
+			delete[] ref_overflow;
+		}
+	}
+}
+
+void SSEKernel::score_alignments(int const & opt, int const & aln_number, char const * const * const reads,
+		char const * const * const refs, short * const scores) {
+
+	/*###############################################################
+	 * ##############################################################
+	 * IF SEGFAULTS OCCUR TRY SAVING SCORES IN TEMPORY ALIGN16 ARRAY
+	 * ##############################################################
+	 * ##############################################################
+	 */
+
+	int alignment_algorithm = opt & 0xF;
+
+	fp_scoring_call scoring_call = 0;
+
+	switch(alignment_algorithm) {
+	case 0:
+		scoring_call = &SSEKernel::score_alignment_smith_waterman;
+		//calc_alignment_smith_waterman(reads, refs, alignments);
+		break;
+	case 1:
+		scoring_call = &SSEKernel::score_alignment_needleman_wunsch;
+		//calc_alignment_needleman_wunsch(reads, refs, alignments);
+		break;
+	default:
+		// Unsupported mode
+		break;
+	}
+
+	if (scoring_call != 0) {
+
+		int num_batches = aln_number / SSE_SIZE;
+		int mod = aln_number % SSE_SIZE;
+
+		int cur_alignment = 0;
+
+		//		std::cout << "Started SSE scoring...\n"
+		//				<< "# alignments:\t" << aln_number
+		//				<< "\n# batches:\t" << num_batches
+		//				<< "\n# overflow:\t" << mod << std::endl;
+
+		while (num_batches > 0) {
+			(this->*scoring_call)(reads + cur_alignment,refs + cur_alignment,scores + cur_alignment);
+			//			for (int i = cur_alignment; i < cur_alignment + SSE_SIZE; ++i) {
+			//				std::cout << "Score:\t" << scores[i] << std::endl;
+			//			}
+			cur_alignment += SSE_SIZE;
+			--num_batches;
+		}
+
+		// Number of alignments not multiple of SSE_SIZE (8 alignments in SIMD registers)
+		// -> Need to fillup remaining slots with \0 sequences
+
+		if (mod != 0) {
+
+			short * score_overflow = new short[SSE_SIZE];
+
+			char const * * const read_overflow = new const char * [SSE_SIZE];
+			char const * * const ref_overflow = new const char * [SSE_SIZE];
+
+			char const * null_read = new char[readLength]();
+			char const * null_ref = new char[refLength]();
+
+			int overflow_fill = 0;
+
+			while (overflow_fill < mod) {
+				*(read_overflow + overflow_fill) = *(reads + cur_alignment + overflow_fill);
+				*(ref_overflow + overflow_fill) = *(refs + cur_alignment + overflow_fill);
+				++overflow_fill;
+			}
+
+			while (overflow_fill < SSE_SIZE) {
+				*(read_overflow + overflow_fill) = null_read;
+				*(ref_overflow + overflow_fill) = null_ref;
+				++overflow_fill;
+			}
+			(this->*scoring_call)(read_overflow,ref_overflow,score_overflow);
+
+			for (int i = 0; i < mod; ++i) {
+				scores[cur_alignment + i] = score_overflow[i];
+				//				std::cout << "Score:\t" << scores[cur_alignment + i] << std::endl;
+
+			}
+
+			delete[] score_overflow; score_overflow = 0;
+			delete[] null_read; null_read = 0;
+			delete[] null_ref; null_ref = 0;
+			delete[] read_overflow;
+			delete[] ref_overflow;
+		}
+	}
+}
+
+void SSEKernel::calc_alignment_matrix_smith_waterman(char const * const * const read,
 		char const * const * const ref, short * const matrix, short * const best_coordinates) {
 
 	// Tracking best read and ref positions
@@ -150,9 +342,9 @@ void SSEKernel::calc_alignment_matrix(char const * const * const read,
 			// Store read and ref positions if new max score
 			match = _mm_cmpgt_epi16(cell, max_score);
 
-//			std::cout << "Scores:\t" << __m128i_toString<short>(cell) << std::endl;
-//			std::cout << "Max:\t" << __m128i_toString<short>(max_score) << std::endl;
-//			std::cout << "Match:\t" << __m128i_toString<short>(match) << std::endl;
+			//			std::cout << "Scores:\t" << __m128i_toString<short>(cell) << std::endl;
+			//			std::cout << "Max:\t" << __m128i_toString<short>(max_score) << std::endl;
+			//			std::cout << "Match:\t" << __m128i_toString<short>(match) << std::endl;
 
 			best_read_pos = _mm_max_epi16(_mm_andnot_si128(match, best_read_pos),_mm_and_si128(match, sse_read_pos));
 			best_ref_pos = _mm_max_epi16(_mm_andnot_si128(match, best_ref_pos),_mm_and_si128(match, sse_ref_pos));
@@ -178,7 +370,7 @@ void SSEKernel::calc_alignment_matrix(char const * const * const read,
 
 	}
 
-//	std::cout << "Max scores: " << __m128i_toString<short>(max_score);
+	//	std::cout << "Max scores: " << __m128i_toString<short>(max_score);
 
 	free(scoreMat);
 
@@ -199,7 +391,7 @@ void SSEKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 	__m128i rowMaxIndex = x_zeros;
 
 	// Tracking global maxima
-//	__m128i globalRowMax = short_to_sse(SHRT_MIN);
+	//	__m128i globalRowMax = short_to_sse(SHRT_MIN);
 	__m128i globalRowMaxIndex = short_to_sse(-1);
 
 	// Scoring matrix indices
@@ -253,26 +445,26 @@ void SSEKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 		// if max_readpos == readLength - 1 AND read char is invalid -> max_read_pos = read_pos - 1
 		max_read_pos = _mm_blendv_si128(max_read_pos, _mm_sub_epi16(sse_read_pos,see_increment), _mm_andnot_si128(valid_read_base,_mm_cmpeq_epi16(max_read_pos, short_to_sse(readLength - 1))));
 
-//		std::cout << "Max read pos:\t" << __m128i_toString<short>(max_read_pos) << std::endl;
-//		std::cout << "Read pos:\t" << __m128i_toString<short>(sse_read_pos) << std::endl;
-//		std::cout << "Read Length:\t" << __m128i_toString<short>(short_to_sse(readLength - 1)) << std::endl;
-//		std::cout << "Valid read base:\t" << __m128i_toString<short>(valid_read_base) << std::endl;
-//		std::cout << "Max read pos == read Length - 1:\t" << __m128i_toString<short>(_mm_cmpeq_epi16(max_read_pos, short_to_sse(readLength - 1))) << std::endl;
-//		std::cout << "cmp:\t" << __m128i_toString<short>(_mm_andnot_si128(valid_read_base,_mm_cmpeq_epi16(max_read_pos, short_to_sse(readLength - 1)))) << std::endl;
-//		std::cout << std::endl;
+		//		std::cout << "Max read pos:\t" << __m128i_toString<short>(max_read_pos) << std::endl;
+		//		std::cout << "Read pos:\t" << __m128i_toString<short>(sse_read_pos) << std::endl;
+		//		std::cout << "Read Length:\t" << __m128i_toString<short>(short_to_sse(readLength - 1)) << std::endl;
+		//		std::cout << "Valid read base:\t" << __m128i_toString<short>(valid_read_base) << std::endl;
+		//		std::cout << "Max read pos == read Length - 1:\t" << __m128i_toString<short>(_mm_cmpeq_epi16(max_read_pos, short_to_sse(readLength - 1))) << std::endl;
+		//		std::cout << "cmp:\t" << __m128i_toString<short>(_mm_andnot_si128(valid_read_base,_mm_cmpeq_epi16(max_read_pos, short_to_sse(readLength - 1)))) << std::endl;
+		//		std::cout << std::endl;
 
 		// Save previous row max if read ends prematurely
 		// if max_readpos + 1 == read_pos -> globalRowMax = rowMax; globalRowMaxIndex = rowMaxIndex;
-//		__m128i sel = _mm_cmpeq_epi16(_mm_add_epi16(max_read_pos,see_increment), sse_read_pos);
-//		globalRowMax =  _mm_blendv_si128(globalRowMax,rowMax,sel);
-//		globalRowMaxIndex =  _mm_blendv_si128(globalRowMaxIndex,rowMaxIndex,sel);
+		//		__m128i sel = _mm_cmpeq_epi16(_mm_add_epi16(max_read_pos,see_increment), sse_read_pos);
+		//		globalRowMax =  _mm_blendv_si128(globalRowMax,rowMax,sel);
+		//		globalRowMaxIndex =  _mm_blendv_si128(globalRowMaxIndex,rowMaxIndex,sel);
 		globalRowMaxIndex =  _mm_blendv_si128(globalRowMaxIndex,rowMaxIndex,_mm_cmpeq_epi16(_mm_add_epi16(max_read_pos,see_increment), sse_read_pos));
 
-//		std::cout << "Max_readpos + 1 == readpos:\t" << __m128i_toString<short>(sel) << std::endl;
-//		std::cout << "globalRowMax:\t" << __m128i_toString<short>(globalRowMax) << std::endl;
-//		std::cout << "globalRowMaxIndex:\t" << __m128i_toString<short>(globalRowMaxIndex) << std::endl;
-//		std::cout << "rowMax:\t" << __m128i_toString<short>(rowMax) << std::endl;
-//		std::cout << "rowMaxIndex:\t" << __m128i_toString<short>(rowMaxIndex) << std::endl;
+		//		std::cout << "Max_readpos + 1 == readpos:\t" << __m128i_toString<short>(sel) << std::endl;
+		//		std::cout << "globalRowMax:\t" << __m128i_toString<short>(globalRowMax) << std::endl;
+		//		std::cout << "globalRowMaxIndex:\t" << __m128i_toString<short>(globalRowMaxIndex) << std::endl;
+		//		std::cout << "rowMax:\t" << __m128i_toString<short>(rowMax) << std::endl;
+		//		std::cout << "rowMaxIndex:\t" << __m128i_toString<short>(rowMaxIndex) << std::endl;
 
 		rowMax = _mm_load_si128((__m128i *) (scoreMat + SSE_SIZE * (current_row_score * (refLength + 1))));
 		rowMaxIndex = x_zeros;
@@ -300,9 +492,9 @@ void SSEKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 
 			__m128i valid_ref_base = _mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_C),_mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_G),_mm_or_si128(_mm_cmpeq_epi16(sse_ref_bases,x_T),_mm_cmpeq_epi16(sse_ref_bases,x_A))));
 
-//			std::cout << "Ref base current:\t";
-//			print_sse_char(sse_ref_bases);
-//			std::cout << std::endl << "Valid:\t" << __m128i_toString<short>(valid_ref_base) << std::endl;
+			//			std::cout << "Ref base current:\t";
+			//			print_sse_char(sse_ref_bases);
+			//			std::cout << std::endl << "Valid:\t" << __m128i_toString<short>(valid_ref_base) << std::endl;
 
 			__m128i valid_comp = _mm_and_si128(valid_read_base, valid_ref_base);
 
@@ -346,9 +538,9 @@ void SSEKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 			// Store read and ref positions if new max score
 			//match = _mm_cmpgt_epi16(cell, max_score);
 
-//			std::cout << "Scores:\t" << __m128i_toString<short>(cell) << std::endl;
-//			std::cout << "Max:\t" << __m128i_toString<short>(max_score) << std::endl;
-//			std::cout << "Match:\t" << __m128i_toString<short>(match) << std::endl;
+			//			std::cout << "Scores:\t" << __m128i_toString<short>(cell) << std::endl;
+			//			std::cout << "Max:\t" << __m128i_toString<short>(max_score) << std::endl;
+			//			std::cout << "Match:\t" << __m128i_toString<short>(match) << std::endl;
 
 			//best_read_pos = _mm_max_epi16(_mm_andnot_si128(match, best_read_pos),_mm_and_si128(match, sse_read_pos));
 			//best_ref_pos = _mm_max_epi16(_mm_andnot_si128(match, best_ref_pos),_mm_and_si128(match, sse_ref_pos));
@@ -357,13 +549,13 @@ void SSEKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 			//std::cout << "Best ref pos\t" << __m128i_toString<short>(best_ref_pos);
 
 			// if max_ref_pos == refLength - 1 AND ref char is invalid -> max_ref_pos = ref_pos - 1
-//			std::cout << std::endl << "Max_ref_pos:\t" << __m128i_toString<short>(max_ref_pos) << std::endl;
-//			std::cout << std::endl << "sse_ref_pos:\t" << __m128i_toString<short>(sse_ref_pos) << std::endl;
-//			std::cout << std::endl << "reflength - 1:\t" << __m128i_toString<short>(short_to_sse(refLength - 1)) << std::endl;
-//			std::cout << std::endl << "valid_ref_base:\t" << __m128i_toString<short>(valid_ref_base) << std::endl;
-//
-//			char a;
-//			std::cin >> a;
+			//			std::cout << std::endl << "Max_ref_pos:\t" << __m128i_toString<short>(max_ref_pos) << std::endl;
+			//			std::cout << std::endl << "sse_ref_pos:\t" << __m128i_toString<short>(sse_ref_pos) << std::endl;
+			//			std::cout << std::endl << "reflength - 1:\t" << __m128i_toString<short>(short_to_sse(refLength - 1)) << std::endl;
+			//			std::cout << std::endl << "valid_ref_base:\t" << __m128i_toString<short>(valid_ref_base) << std::endl;
+			//
+			//			char a;
+			//			std::cin >> a;
 			max_ref_pos = _mm_blendv_si128(max_ref_pos, _mm_sub_epi16(sse_ref_pos,see_increment), _mm_andnot_si128(valid_ref_base,_mm_cmpeq_epi16(max_ref_pos, short_to_sse(refLength - 1))));
 
 			// if cur > rowMax => rowMax = cur; rowMaxIndex = ref_pos;
@@ -387,18 +579,18 @@ void SSEKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 
 	}
 
-//	std::cout << "Max scores: " << __m128i_toString<short>(max_score);
+	//	std::cout << "Max scores: " << __m128i_toString<short>(max_score);
 
 	free(scoreMat);
 
-//	__m128i tmp = _mm_cmplt_epi16(globalRowMaxIndex,x_zeros);
+	//	__m128i tmp = _mm_cmplt_epi16(globalRowMaxIndex,x_zeros);
 
-//	globalRowMax = _mm_blendv_si128(globalRowMax, rowMax, tmp);
-//	globalRowMaxIndex = _mm_blendv_si128(globalRowMaxIndex, rowMaxIndex, tmp);
+	//	globalRowMax = _mm_blendv_si128(globalRowMax, rowMax, tmp);
+	//	globalRowMaxIndex = _mm_blendv_si128(globalRowMaxIndex, rowMaxIndex, tmp);
 	globalRowMaxIndex = _mm_blendv_si128(globalRowMaxIndex, rowMaxIndex, _mm_cmplt_epi16(globalRowMaxIndex,x_zeros));
 
-//	std::cout << "Max_ref_pos:\t" << __m128i_toString<short>(max_ref_pos) << std::endl;
-//	std::cout << "globalRowMaxIndex:\t" << __m128i_toString<short>(globalRowMaxIndex) << std::endl;
+	//	std::cout << "Max_ref_pos:\t" << __m128i_toString<short>(max_ref_pos) << std::endl;
+	//	std::cout << "globalRowMaxIndex:\t" << __m128i_toString<short>(globalRowMaxIndex) << std::endl;
 
 	__m128i best_ref_pos = _mm_min_epi16(max_ref_pos,globalRowMaxIndex);
 
@@ -406,10 +598,8 @@ void SSEKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 	_mm_store_si128((__m128i *)best_coordinates + 1, best_ref_pos);
 }
 
-void SSEKernel::calc_alignment(char const * const * const read,
-				char const * const * const ref, Alignment * const alignment) {
-
-	std::cout << "Aln Length:\t" << alnLength << std::endl;
+void SSEKernel::calc_alignment_smith_waterman(char const * const * const read,
+		char const * const * const ref, Alignment * const alignment) {
 
 	short * matrix = 0;
 	malloc16(matrix, sizeof(short) * (refLength + 1) * (readLength + 1) * SSE_SIZE,16);
@@ -419,21 +609,21 @@ void SSEKernel::calc_alignment(char const * const * const read,
 	malloc16(best_coordinates, sizeof(short) * 2 * SSE_SIZE,16);
 	memset(best_coordinates, 0, sizeof(short) * 2 * SSE_SIZE);
 
-	std::cout << "Score matrix" << std::endl;
+	//std::cout << "Score matrix" << std::endl;
 
-	calc_alignment_matrix(read, ref, matrix, best_coordinates);
+	calc_alignment_matrix_smith_waterman(read, ref, matrix, best_coordinates);
 
-	for (int SSE_register = 0; SSE_register < SSE_SIZE; ++SSE_register) {
-		std::cout << "Matrix:" << std::endl;
-		for (int i = 0; i < readLength + 1; ++i) {
-			for (int j = 0; j < refLength + 1; ++j) {
-				//__m128i cell = _mm_load_si128((__m128i *) (matrix + SSE_SIZE * (i * (refLength + 1) + j)));
-				//std::cout << __m128i_toString<short>(cell) << std::endl;
-				std::cout << *(matrix + SSE_SIZE * (i * (refLength + 1) + j) + SSE_register) << " ";
-			}
-			std::cout << std::endl;
-		}
-	}
+	//	for (int SSE_register = 0; SSE_register < SSE_SIZE; ++SSE_register) {
+	//		std::cout << "Matrix:" << std::endl;
+	//		for (int i = 0; i < readLength + 1; ++i) {
+	//			for (int j = 0; j < refLength + 1; ++j) {
+	//				//__m128i cell = _mm_load_si128((__m128i *) (matrix + SSE_SIZE * (i * (refLength + 1) + j)));
+	//				//std::cout << __m128i_toString<short>(cell) << std::endl;
+	//				std::cout << *(matrix + SSE_SIZE * (i * (refLength + 1) + j) + SSE_register) << " ";
+	//			}
+	//			std::cout << std::endl;
+	//		}
+	//	}
 
 	char * alignments = new char[alnLength * 2 * SSE_SIZE];
 
@@ -441,15 +631,15 @@ void SSEKernel::calc_alignment(char const * const * const read,
 	__m128i best_read_positions = _mm_load_si128((__m128i *) best_coordinates);
 	__m128i best_ref_positions = _mm_load_si128((__m128i *) best_coordinates + 1);
 
-//	std::cout << "Best read: " << __m128i_toString<short>(best_read_positions);
-//	std::cout << std::endl << "Best ref: " << __m128i_toString<short>(best_ref_positions);
-//	std::cout << std::endl;
+	//	std::cout << "Best read: " << __m128i_toString<short>(best_read_positions);
+	//	std::cout << std::endl << "Best ref: " << __m128i_toString<short>(best_ref_positions);
+	//	std::cout << std::endl;
 
 	for (int SSE_register = 0; SSE_register < SSE_SIZE; ++SSE_register) {
-//		std::cout << "register " << SSE_register << std::endl;
+		//		std::cout << "register " << SSE_register << std::endl;
 		short read_pos = *(best_coordinates + SSE_register);
 		short ref_pos = *(best_coordinates + SSE_SIZE + SSE_register);
-//		std::cout << "Cur read_pos " << read_pos << " Cur ref_pos " << ref_pos << std::endl;
+		//		std::cout << "Cur read_pos " << read_pos << " Cur ref_pos " << ref_pos << std::endl;
 
 		int aln_pos = alnLength - 2;
 
@@ -459,21 +649,21 @@ void SSEKernel::calc_alignment(char const * const * const read,
 		short backtrack = *(matrix + SSE_SIZE * ((read_pos + 1) * (refLength + 1) + ref_pos + 1) + SSE_register);
 
 		while (backtrack != START) {
-//			std::cout << "Cur backtrack " << backtrack << std::endl;
+			//			std::cout << "Cur backtrack " << backtrack << std::endl;
 
 			if (backtrack == UP) {
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = '-';
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = read[SSE_register][read_pos--];
 			}
 
-//			char base = *(read[SSE_register] + read_pos);
-//			std::cout << "Read base:\t" << base << std::endl;
+			//			char base = *(read[SSE_register] + read_pos);
+			//			std::cout << "Read base:\t" << base << std::endl;
 			if (backtrack == LEFT) {
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = '-';
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = ref[SSE_register][ref_pos--];
 			}
-//			base = *(ref[SSE_register] + ref_pos);
-//			std::cout << "Ref base:\t" << base << std::endl;
+			//			base = *(ref[SSE_register] + ref_pos);
+			//			std::cout << "Ref base:\t" << base << std::endl;
 			if (backtrack == DIAG) {
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = read[SSE_register][read_pos--];
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = ref[SSE_register][ref_pos--];
@@ -482,7 +672,7 @@ void SSEKernel::calc_alignment(char const * const * const read,
 			backtrack = *(matrix + SSE_SIZE * ((read_pos + 1) * (refLength + 1) + ref_pos + 1) + SSE_register);
 			--aln_pos;
 
-//			std::cout << "Cur read pos:\t" << read_pos << std::endl << "Cur refpos:\t" << ref_pos << std::endl;
+			//			std::cout << "Cur read pos:\t" << read_pos << std::endl << "Cur refpos:\t" << ref_pos << std::endl;
 
 		}
 
@@ -506,9 +696,6 @@ void SSEKernel::calc_alignment(char const * const * const read,
 
 void SSEKernel::calc_alignment_needleman_wunsch(char const * const * const read,
 		char const * const * const ref, Alignment * const alignment) {
-
-
-	std::cout << "Aln Length:\t" << alnLength << std::endl;
 
 	short * matrix = 0;
 	malloc16(matrix, sizeof(short) * (refLength + 1) * (readLength + 1) * SSE_SIZE,16);
@@ -605,7 +792,7 @@ void SSEKernel::calc_alignment_needleman_wunsch(char const * const * const read,
 }
 
 
-void SSEKernel::score_alignment (char const * const * const read, char const * const * const ref, short * const scores) {
+void SSEKernel::score_alignment_smith_waterman (char const * const * const read, char const * const * const ref, short * const scores) {
 
 	__m128i max_score = x_zeros;
 

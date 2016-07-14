@@ -17,59 +17,59 @@ inline short max(short a, short b) {
 // Class methods implementation
 
 void DefaultKernel::compute_alignments(int const & opt, int const & aln_number, char const * const * const reads,
-				char const * const * const refs, Alignment * const alignments) {
+		char const * const * const refs, Alignment * const alignments) {
 
-		int alignment_algorithm = opt & 0xF;
+	int alignment_algorithm = opt & 0xF;
 
-		fp_alignment_call alignment_call = 0;
+	fp_alignment_call alignment_call = 0;
 
-		switch(alignment_algorithm) {
-			case 0:
-				alignment_call = &DefaultKernel::calc_alignment_smith_waterman;
-				//calc_alignment_smith_waterman(reads, refs, alignments);
-				break;
-			case 1:
-				alignment_call = &DefaultKernel::calc_alignment_needleman_wunsch;
-				//calc_alignment_needleman_wunsch(reads, refs, alignments);
-				break;
-			default:
-				// Unsupported mode
-				break;
-		}
-
-		if (alignment_call != 0) {
-			for (int i = 0; i < aln_number; ++i) {
-				(this->*alignment_call)(reads[i],refs[i],&alignments[i]);
-			}
-		}
+	switch(alignment_algorithm) {
+	case 0:
+		alignment_call = &DefaultKernel::calc_alignment_smith_waterman;
+		//calc_alignment_smith_waterman(reads, refs, alignments);
+		break;
+	case 1:
+		alignment_call = &DefaultKernel::calc_alignment_needleman_wunsch;
+		//calc_alignment_needleman_wunsch(reads, refs, alignments);
+		break;
+	default:
+		// Unsupported mode
+		break;
 	}
 
+	if (alignment_call != 0) {
+		for (int i = 0; i < aln_number; ++i) {
+			(this->*alignment_call)(reads[i],refs[i],&alignments[i]);
+		}
+	}
+}
+
 void DefaultKernel::score_alignments(int const & opt, int const & aln_number, char const * const * const reads,
-				char const * const * const refs, short * const scores) {
+		char const * const * const refs, short * const scores) {
+
 	int alignment_algorithm = opt & 0xF;
 
 	fp_scoring_call scoring_call = 0;
 
-			switch(alignment_algorithm) {
-				case 0:
-					scoring_call = &DefaultKernel::score_alignment_smith_waterman;
-					//calc_alignment_smith_waterman(reads, refs, alignments);
-					break;
-				case 1:
-					scoring_call = &DefaultKernel::score_alignment_needleman_wunsch;
-					//calc_alignment_needleman_wunsch(reads, refs, alignments);
-					break;
-				default:
-					// Unsupported mode
-					break;
-			}
+	switch(alignment_algorithm) {
+	case 0:
+		scoring_call = &DefaultKernel::score_alignment_smith_waterman;
+		//calc_alignment_smith_waterman(reads, refs, alignments);
+		break;
+	case 1:
+		scoring_call = &DefaultKernel::score_alignment_needleman_wunsch;
+		//calc_alignment_needleman_wunsch(reads, refs, alignments);
+		break;
+	default:
+		// Unsupported mode
+		break;
+	}
 
-			if (scoring_call != 0) {
-				for (int i = 0; i < aln_number; ++i) {
-					(this->*scoring_call)(reads[i],refs[i],&scores[i]);
-				}
-			}
-
+	if (scoring_call != 0) {
+		for (int i = 0; i < aln_number; ++i) {
+			(this->*scoring_call)(reads[i],refs[i],&scores[i]);
+		}
+	}
 }
 
 void DefaultKernel::score_alignment_smith_waterman(char const * const read,
@@ -236,16 +236,16 @@ void DefaultKernel::calculate_alignment_matrix_needleman_wunsch(char const * con
 	short rowMax = SHRT_MIN;
 	//short colMax = SHRT_MIN;
 
-//	short globalRowMax = SHRT_MIN;
+	//	short globalRowMax = SHRT_MIN;
 	short globalRowMaxIndex = -1;
 
 	short rowMaxIndex = 0;
 	//short colMaxIndex = 0;
 
 	for (int read_pos = 0; read_pos < readLength + 1; ++read_pos) {
-//		std::cout << scoreMat[read_pos] << " ";
+		//		std::cout << scoreMat[read_pos] << " ";
 	}
-//	std::cout << std::endl;
+	//	std::cout << std::endl;
 
 	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
 
@@ -259,14 +259,14 @@ void DefaultKernel::calculate_alignment_matrix_needleman_wunsch(char const * con
 
 		// Save previous row max if read ends prematurely
 		if (max_read_pos + 1 == read_pos) {
-//			globalRowMax = rowMax;
+			//			globalRowMax = rowMax;
 			globalRowMaxIndex = rowMaxIndex;
 		}
 
 		rowMax = scoreMat[current_row_score * (refLength + 1)];
 		rowMaxIndex = 0;
 
-//		std::cout << (read_pos + 1) * scoreGapRef << " ";
+		//		std::cout << (read_pos + 1) * scoreGapRef << " ";
 
 		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
 
@@ -303,9 +303,9 @@ void DefaultKernel::calculate_alignment_matrix_needleman_wunsch(char const * con
 
 			matrix[current_row_aln * (refLength + 1) + ref_pos + 1] = pointer;
 
-//			std::cout << cur << " ";
+			//			std::cout << cur << " ";
 		}
-//		std::cout << std::endl;
+		//		std::cout << std::endl;
 
 		prev_row_score = current_row_score;
 		(++current_row_score) &= 1;
@@ -317,7 +317,7 @@ void DefaultKernel::calculate_alignment_matrix_needleman_wunsch(char const * con
 
 	best_coordinates[0] = max_read_pos;
 
-//	std::cout << "Max_ref_pos: " << max_ref_pos << std::endl << "globalRowMaxIndex: " << globalRowMaxIndex << std::endl << "rowMaxIndex: " << rowMaxIndex << std::endl;
+	//	std::cout << "Max_ref_pos: " << max_ref_pos << std::endl << "globalRowMaxIndex: " << globalRowMaxIndex << std::endl << "rowMaxIndex: " << rowMaxIndex << std::endl;
 
 
 	if (globalRowMaxIndex < 0 ) {
@@ -325,11 +325,11 @@ void DefaultKernel::calculate_alignment_matrix_needleman_wunsch(char const * con
 		globalRowMaxIndex = rowMaxIndex;
 	}
 
-//	if (max_ref_pos == refLength - 1) {
-//		best_coordinates[1] = globalRowMaxIndex;
-//	} else {
-//		best_coordinates[1] = max_ref_pos;
-//	}
+	//	if (max_ref_pos == refLength - 1) {
+	//		best_coordinates[1] = globalRowMaxIndex;
+	//	} else {
+	//		best_coordinates[1] = max_ref_pos;
+	//	}
 	best_coordinates[1] = std::min(max_ref_pos, globalRowMaxIndex);
 
 }
@@ -348,13 +348,13 @@ void DefaultKernel::calc_alignment_smith_waterman(char const * const read,
 
 	calculate_alignment_matrix_smith_waterman(read, ref, matrix, best_coordinates);
 
-//	std::cout << "Matrix:" << std::endl;
-//	for (int i = 0; i < readLength + 1; ++i) {
-//		for (int j = 0; j < refLength + 1; ++j) {
-//			std::cout << matrix[i * (refLength + 1) + j] << " ";
-//		}
-//		std::cout << std::endl;
-//	}
+	//	std::cout << "Matrix:" << std::endl;
+	//	for (int i = 0; i < readLength + 1; ++i) {
+	//		for (int j = 0; j < refLength + 1; ++j) {
+	//			std::cout << matrix[i * (refLength + 1) + j] << " ";
+	//		}
+	//		std::cout << std::endl;
+	//	}
 
 	char * alignments = new char[alnLength * 2];
 
@@ -425,9 +425,9 @@ void DefaultKernel::calc_alignment_needleman_wunsch(char const * const read,
 	std::cout << "Matrix:" << std::endl;
 	for (int i = 0; i < readLength + 1; ++i) {
 		for (int j = 0; j < refLength + 1; ++j) {
-//			std::cout << matrix[i * (refLength + 1) + j] << " ";
+			//			std::cout << matrix[i * (refLength + 1) + j] << " ";
 		}
-//		std::cout << std::endl;
+		//		std::cout << std::endl;
 	}
 
 	char * alignments = new char[alnLength * 2];

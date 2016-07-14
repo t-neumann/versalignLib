@@ -1,12 +1,11 @@
 /*
- * DefaultKernel_dllexport.cpp
+ * AVXKernel_dllexport.cpp
  *
- *  Created on: Jul 13, 2016
- *      Author: Tobias Neumann
- *       Email: tobias.neumann.at@gmail.com
+ *  Created on: Jul 14, 2016
+ *      Author: tobias.neumann
  */
 
-#include "DefaultKernel.h"
+#include "AVXKernel.h"
 #include "AlignmentKernel.h"
 
 #ifdef _WIN32
@@ -17,7 +16,7 @@
 
 extern "C" dllexport AlignmentKernel * spawn_alignment_kernel() {
 
-	AlignmentKernel * kernel = new DefaultKernel();
+	AlignmentKernel * kernel = new AVXKernel();
 
 	return kernel;
 }
@@ -30,9 +29,11 @@ extern "C" dllexport void set_parameters(AlignmentParameters * parameters) {
 }
 
 
-extern "C" dllexport void delete_alignment_kernel(DefaultKernel * instance) {
+extern "C" dllexport void delete_alignment_kernel(AVXKernel * instance) {
 	if (instance != 0) {
 		delete instance;
 		instance = 0;
 	}
 }
+
+

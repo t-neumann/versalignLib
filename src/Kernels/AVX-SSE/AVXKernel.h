@@ -5,11 +5,11 @@
  *      Author: tobias.neumann
  */
 
-#ifndef AVXKERNEL_H_
-#define AVXKERNEL_H_
+#ifndef AVXKERNEL_H
+#define AVXKERNEL_H
 
-//#include "AlignmentKernel.h"
 #include "AlignmentKernel.h"
+#include "AlignmentParameters.h"
 
 #if _WIN32
 #define align32 __declspec(align(32))
@@ -30,17 +30,44 @@
 #include <immintrin.h>
 #include <climits>
 
-class AVXKernel {
+#include <iostream>
+
+class AVXKernel : public AlignmentKernel{
 
 public:
 	AVXKernel() {
 
-		scoreGapRead = -3;
-		scoreGapRef = -3;
-		scoreMatch = 2;
-		scoreMismatch = -1;
+		bool exception = false;
 
+		Parameters.has_key("score_match") ? scoreMatch = Parameters.param_int("score_match") : exception = true;
+		Parameters.has_key("score_mismatch") ? scoreMismatch = Parameters.param_int("score_mismatch") : exception = true;
+		Parameters.has_key("score_gap_read") ? scoreGapRead = Parameters.param_int("score_gap_read") : exception = true;
+		Parameters.has_key("score_gap_ref") ? scoreGapRef = Parameters.param_int("score_gap_ref") : exception = true;
+		Parameters.has_key("read_length") ? readLength = Parameters.param_int("read_length") : exception = true;
+		Parameters.has_key("ref_length") ? refLength = Parameters.param_int("ref_length") : exception = true;
+
+		alnLength = refLength + readLength;
+
+		std::cout << "Match: " << scoreMatch
+						<< "\nMismatch: " << scoreMismatch
+						<< "\nGap_read: " << scoreGapRead
+						<< "\nGap_ref: " << scoreGapRef
+						<< "\nRead_length: " << readLength
+						<< "\nRef_length: " << refLength
+						<< "\nAln_length: " << alnLength << std::endl;
+
+		char a;
+		std::cin >> a;
+
+		if (exception) {
+			throw "Cannot instantiate Kernel. Lacking parameters";
+		}
+
+		std::cout << "SHORT TO AVX start:!\n";
+		std::cin >> a;
 		x_scoreMatch = short_to_avx(scoreMatch);
+		std::cout << "SHORT TO AVX end:!\n";
+		std::cin >> a;
 		x_scoreMismatch = short_to_avx(scoreMismatch);
 		x_scoreGapRead = short_to_avx(scoreGapRead);
 		x_scoreGapRef = short_to_avx(scoreGapRef);
@@ -57,35 +84,40 @@ public:
 		x_p_up = short_to_avx(UP);
 		x_p_left = short_to_avx(LEFT);
 		x_p_diag = short_to_avx(DIAG);
-	}
 
-	void init (int const & max_read_length, int const & max_ref_length) {
-			this->readLength = max_read_length;
-			this->refLength = max_ref_length;
-			this->alnLength = refLength + readLength;
+
 	}
 
 	virtual ~AVXKernel() {}
 
-	void score_alignment(char const * const * const read,
-			char const * const * const ref, short * const scores);
+	virtual void compute_alignments(int const & opt, int const & aln_number, char const * const * const reads,
+			char const * const * const refs, Alignment * const alignments);
 
-	void score_alignment_needleman_wunsch(char const * const * const read,
-				char const * const * const ref, short * const scores);
-
-	void calc_alignment(char const * const * const read,
-				char const * const * const ref, Alignment * const alignment);
-
-	virtual void calc_alignment_needleman_wunsch(char const * const * const read,
-				char const * const * const ref, Alignment * const alignment);
+	virtual void score_alignments(int const & opt, int const & aln_number, char const * const * const reads,
+			char const * const * const refs, short * const scores);
 
 private:
 
-	void calc_alignment_matrix(char const * const * const read,
+	void score_alignment_smith_waterman(char const * const * const read,
+			char const * const * const ref, short * const scores);
+
+	void score_alignment_needleman_wunsch(char const * const * const read,
+			char const * const * const ref, short * const scores);
+
+	void calc_alignment_smith_waterman(char const * const * const read,
+			char const * const * const ref, Alignment * const alignment);
+
+	void calc_alignment_needleman_wunsch(char const * const * const read,
+			char const * const * const ref, Alignment * const alignment);
+
+	void calc_alignment_matrix_smith_waterman(char const * const * const read,
 			char const * const * const ref, short * const matrix, short * const best_coordinates);
 
 	void calculate_alignment_matrix_needleman_wunsch(char const * const * const read,
 			char const * const * const ref, short * const matrix, short * const best_coordinates);
+
+	typedef void (AVXKernel::* fp_alignment_call)(char const * const * const,  char const * const * const, Alignment * const);
+	typedef void (AVXKernel::* fp_scoring_call)(char const * const * const,  char const * const * const, short * const);
 
 	// Short = 2 byte
 	// __m256i fits 256 bits = 16 shorts
@@ -154,4 +186,4 @@ private:
 
 };
 
-#endif /* AVXKERNEL_H_ */
+#endif /* AVXKERNEL_H */

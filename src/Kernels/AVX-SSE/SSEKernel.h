@@ -5,11 +5,11 @@
  *      Author: tobias.neumann
  */
 
-#ifndef SSEKERNEL_H_
-#define SSEKERNEL_H_
+#ifndef SSEKERNEL_H
+#define SSEKERNEL_H
 
-//#include "AlignmentKernel.h"
 #include "AlignmentKernel.h"
+#include "AlignmentParameters.h"
 
 #if _WIN32
 #define align16 __declspec(align(16))
@@ -30,15 +30,25 @@
 #include <immintrin.h>
 #include <climits>
 
-class SSEKernel {
+class SSEKernel : public AlignmentKernel {
 
 public:
 	SSEKernel() {
 
-		scoreGapRead = -3;
-		scoreGapRef = -3;
-		scoreMatch = 2;
-		scoreMismatch = -1;
+		bool exception = false;
+
+		Parameters.has_key("score_match") ? scoreMatch = Parameters.param_int("score_match") : exception = true;
+		Parameters.has_key("score_mismatch") ? scoreMismatch = Parameters.param_int("score_mismatch") : exception = true;
+		Parameters.has_key("score_gap_read") ? scoreGapRead = Parameters.param_int("score_gap_read") : exception = true;
+		Parameters.has_key("score_gap_ref") ? scoreGapRef = Parameters.param_int("score_gap_ref") : exception = true;
+		Parameters.has_key("read_length") ? readLength = Parameters.param_int("read_length") : exception = true;
+		Parameters.has_key("ref_length") ? refLength = Parameters.param_int("ref_length") : exception = true;
+
+		alnLength = refLength + readLength;
+
+		if (exception) {
+			throw "Cannot instantiate Kernel. Lacking parameters";
+		}
 
 		x_scoreMatch = short_to_sse(scoreMatch);
 		x_scoreMismatch = short_to_sse(scoreMismatch);
@@ -59,33 +69,36 @@ public:
 		x_p_diag = short_to_sse(DIAG);
 	}
 
-	void init (int const & max_read_length, int const & max_ref_length) {
-			this->readLength = max_read_length;
-			this->refLength = max_ref_length;
-			this->alnLength = refLength + readLength;
-	}
-
 	virtual ~SSEKernel() {}
 
-	void score_alignment(char const * const * const read,
-			char const * const * const ref, short * const scores);
+	virtual void compute_alignments(int const & opt, int const & aln_number, char const * const * const reads,
+			char const * const * const refs, Alignment * const alignments);
 
-	void score_alignment_needleman_wunsch(char const * const * const read,
-				char const * const * const ref, short * const scores);
-
-	void calc_alignment(char const * const * const read,
-				char const * const * const ref, Alignment * const alignment);
-
-	virtual void calc_alignment_needleman_wunsch(char const * const * const read,
-				char const * const * const ref, Alignment * const alignment);
+	virtual void score_alignments(int const & opt, int const & aln_number, char const * const * const reads,
+			char const * const * const refs, short * const scores);
 
 private:
 
-	void calc_alignment_matrix(char const * const * const read,
+	void score_alignment_smith_waterman(char const * const * const read,
+			char const * const * const ref, short * const scores);
+
+	void score_alignment_needleman_wunsch(char const * const * const read,
+			char const * const * const ref, short * const scores);
+
+	void calc_alignment_smith_waterman(char const * const * const read,
+			char const * const * const ref, Alignment * const alignment);
+
+	virtual void calc_alignment_needleman_wunsch(char const * const * const read,
+			char const * const * const ref, Alignment * const alignment);
+
+	void calc_alignment_matrix_smith_waterman(char const * const * const read,
 			char const * const * const ref, short * const matrix, short * const best_coordinates);
 
 	void calculate_alignment_matrix_needleman_wunsch(char const * const * const read,
 			char const * const * const ref, short * const matrix, short * const best_coordinates);
+
+	typedef void (SSEKernel::* fp_alignment_call)(char const * const * const,  char const * const * const, Alignment * const);
+	typedef void (SSEKernel::* fp_scoring_call)(char const * const * const,  char const * const * const, short * const);
 
 	// Short = 2 byte
 	// __m128i fits 128 bits = 8 shorts
@@ -154,4 +167,4 @@ private:
 
 };
 
-#endif /* SSEKERNEL_H_ */
+#endif /* SSEKERNEL_H */

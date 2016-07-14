@@ -9,8 +9,8 @@
 #include "CustomParameters.h"
 #include "dll_handling.h"
 //#include "Kernels/plain/SWKernel.h"
-#include "Kernels/AVX-SSE/SSEKernel.h"
-//#include "Kernels/AVX-SSE/AVXKernel.h"
+//#include "Kernels/AVX-SSE/SSEKernel.h"
+#include "Kernels/AVX-SSE/AVXKernel.h"
 #include "util/versalignUtil.h"
 #include "Kernels/OpenCL/ocl_testing.h"
 #include "Timer/Timer.h"
@@ -114,7 +114,9 @@ int main(int argc, char *argv[]) {
 			"TATAC",
 			"AGGAAGAG",
 			"TT",
-			"CCCCC"};
+			"CCCCC",
+			"AGGGGGGA"
+	};
 
 	char const
 	* refs[] =
@@ -134,9 +136,11 @@ int main(int argc, char *argv[]) {
 			"TAGCATCAAGCAGTACTACA",
 			"TCTCTCTCTCTCTCTCTCTC",
 			"AGCAGATGACATGCATGCAA",
-			""};
+			"",
+			"AGCAGATGAGGGCGGATAGC"
+	};
 
-	int seqNumber = 16;
+	int seqNumber = 17;
 
 	size_t max_read_length = pad(reads, seqNumber, READ_PAD);
 
@@ -145,26 +149,42 @@ int main(int argc, char *argv[]) {
 	parameters.read_length = max_read_length;
 	parameters.ref_length = max_ref_length;
 
-	char const * libPath = "../bin/libDefaultKernel.so";
+	//char const * libPath = "../bin/libDefaultKernel.so";
+	char const * libPath = "../bin/libSSEKernel.so";
+	//char const * libPath = "../bin/libAVXKernel.so";
 
 	int const dll = DLL_init(libPath, &parameters);
 
+	std::cout << "LIB loaded!\n";
+	char a;
+	std::cin >> a;
+
 	fp_load_alignment_kernel load_alignment_kernel = (fp_load_alignment_kernel) DLL_function_retreival(dll, "spawn_alignment_kernel");
 	fp_delete_alignment_kernel delete_alignment_kernel = (fp_delete_alignment_kernel) DLL_function_retreival(dll, "delete_alignment_kernel");
+	std::cout << "PF loaded!\n";
+	std::cin >> a;
 
 	AlignmentKernel * plain_kernel = 0;
 
-	plain_kernel = load_alignment_kernel();
+	//plain_kernel = load_alignment_kernel();
 
 	short * scores = new short[seqNumber]();
 	Alignment * alignments = new Alignment[seqNumber]();
 
-	plain_kernel->compute_alignments(0, seqNumber, reads, refs, alignments);
-	plain_kernel->score_alignments(0, seqNumber, reads,refs, scores);
+	//plain_kernel->compute_alignments(0, seqNumber, reads, refs, alignments);
+	//plain_kernel->score_alignments(0, seqNumber, reads,refs, scores);
 
-	//SWKernel * kernel = new SWKernel();
+	//Kernel * kernel = new SWKernel();
 
-	//kernel->compute_alignments(0,seqNumber,reads,refs,alignments);
+	//SSEKernel * kernel = new SSEKernel();
+
+	AVXKernel * kernel = new AVXKernel();
+
+	std::cout << "AVX Kernel loaded!\n";
+	std::cin >> a;
+
+	kernel->score_alignments(1,seqNumber,reads,refs,scores);
+	kernel->compute_alignments(1,seqNumber,reads,refs,alignments);
 
 		for (int i = 0; i < seqNumber; ++i) {
 			std::cout << "Read: " << reads[i] << std::endl;
