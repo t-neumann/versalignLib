@@ -1,12 +1,12 @@
 /*
- * SWKernel_dllexport.cpp
+ * DefaultKernel_dllexport.cpp
  *
  *  Created on: Jul 13, 2016
  *      Author: Tobias Neumann
  *       Email: tobias.neumann.at@gmail.com
  */
 
-#include "SWKernel.h"
+#include "DefaultKernel.h"
 #include "AlignmentKernel.h"
 
 #ifdef _WIN32
@@ -22,7 +22,7 @@ void SetConfig(AlignmentParameters * parameters) {
 
 extern "C" dllexport AlignmentKernel * spawn_alignment_kernel() {
 
-	AlignmentKernel * kernel = new SWKernel();
+	AlignmentKernel * kernel = new DefaultKernel();
 
 	return kernel;
 }
@@ -35,7 +35,7 @@ extern "C" dllexport void set_parameters(AlignmentParameters * parameters) {
 }
 
 
-extern "C" dllexport void delete_alignment_kernel(SWKernel * instance) {
+extern "C" dllexport void delete_alignment_kernel(DefaultKernel * instance) {
 	if (instance != 0) {
 			delete instance;
 			instance = 0;

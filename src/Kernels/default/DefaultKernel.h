@@ -1,12 +1,12 @@
 /*
- * SWKernel.h
+ * DefaultKernel.h
  *
  *  Created on: May 23, 2016
  *      Author: tobias.neumann
  */
 
-#ifndef SWKERNEL_H_
-#define SWKERNEL_H_
+#ifndef DEFAULTKERNEL_H
+#define DEFAULTKERNEL_H
 
 #include "AlignmentKernel.h"
 #include "AlignmentParameters.h"
@@ -54,15 +54,13 @@ const char char_to_score[ASCII_ALPHABET] = {
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-	};
+};
 
-void SetConfig(AlignmentParameters * parameters);
-
-class SWKernel: public AlignmentKernel {
+class DefaultKernel: public AlignmentKernel {
 
 public:
 
-	SWKernel() {
+	DefaultKernel() {
 
 		bool exception = false;
 
@@ -87,11 +85,6 @@ public:
 				<< "\nRef_length: " << refLength
 				<< "\nAln_length: " << alnLength << std::endl;
 
-		//scoreGapRead = -3;
-		//scoreGapRef = -3;
-		//scoreMatch = 2;
-		//scoreMismatch = -1;
-
 		short tmp[SCORE_CASE][SCORE_CASE]= {
 				// non ATGCN
 				{0,0,0,0,0,0},
@@ -111,63 +104,33 @@ public:
 
 	}
 
-	virtual ~SWKernel();
-
-	void init (int const & max_read_length, int const & max_ref_length) {
-		this->readLength = max_read_length;
-		this->refLength = max_ref_length;
-		this->alnLength = refLength + readLength;
-	}
-
-	void set_reference_length(int const & reference_size) {
-		this->refLength = reference_size;
-	}
-
-	void set_read_length(int const & read_length) {
-		this->readLength = read_length;
-	}
-
-	virtual void score_alignment(char const * const * const read,
-			char const * const * const ref, short * const scores);
-
-	virtual void score_alignment_needleman_wunsch(char const * const * const read,
-				char const * const * const ref, short * const scores);
-
-	virtual void calc_alignment(char const * const * const read,
-			char const * const * const ref, Alignment * const alignment);
-
-	virtual void calc_alignment_needleman_wunsch(char const * const * const read,
-			char const * const * const ref, Alignment * const alignment);
+	virtual ~DefaultKernel() {}
 
 	virtual void compute_alignments(int const & opt, int const & aln_number, char const * const * const reads,
-				char const * const * const refs, Alignment * const alignments) {
-
-		int alignment_algorithm = opt & 0xF;
-
-		switch(alignment_algorithm) {
-			case 0:
-				calc_alignment(reads, refs, alignments);
-				break;
-			case 1:
-				calc_alignment_needleman_wunsch(reads, refs, alignments);
-				break;
-			default:
-				// Unsupported mode
-				break;
-		}
-	}
+			char const * const * const refs, Alignment * const alignments);
 
 	virtual void score_alignments(int const & opt, int const & aln_number, char const * const * const reads,
-				char const * const * const refs, short * const scores) {
-	}
+			char const * const * const refs, short * const scores);
 
 private:
 
-	void calculate_alignment_matrix(char const * const * const read,
-			char const * const * const ref, alnMat const matrix, short * const best_coordinates);
+	virtual void score_alignment_smith_waterman(char const * const read,
+			char const * const ref, short * const scores);
 
-	void calculate_alignment_matrix_needleman_wunsch(char const * const * const read,
-			char const * const * const ref, alnMat const matrix, short * const best_coordinates);
+	virtual void score_alignment_needleman_wunsch(char const * const read,
+			char const * const ref, short * const scores);
+
+	virtual void calc_alignment_smith_waterman(char const * const read,
+			char const * const ref, Alignment * const alignment);
+
+	virtual void calc_alignment_needleman_wunsch(char const * const read,
+			char const * const ref, Alignment * const alignment);
+
+	void calculate_alignment_matrix_smith_waterman(char const * const read,
+			char const * const ref, alnMat const matrix, short * const best_coordinates);
+
+	void calculate_alignment_matrix_needleman_wunsch(char const * const read,
+			char const * const ref, alnMat const matrix, short * const best_coordinates);
 
 	int readLength;
 	int refLength;
@@ -179,6 +142,10 @@ private:
 	short scoreMismatch;
 	short scoreGapRead;
 	short scoreGapRef;
+
+	typedef void (DefaultKernel::* fp_alignment_call)(char const * const,  char const * const, Alignment * const);
+	typedef void (DefaultKernel::* fp_scoring_call)(char const * const,  char const * const, short * const);
+
 };
 
-#endif /* SWKERNEL_H_ */
+#endif /* DEFAULTKERNEL_H */

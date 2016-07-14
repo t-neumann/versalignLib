@@ -8,7 +8,7 @@
 #include "AlignmentKernel.h"
 #include "CustomParameters.h"
 #include "dll_handling.h"
-#include "Kernels/plain/SWKernel.h"
+//#include "Kernels/plain/SWKernel.h"
 #include "Kernels/AVX-SSE/SSEKernel.h"
 //#include "Kernels/AVX-SSE/AVXKernel.h"
 #include "util/versalignUtil.h"
@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
 	parameters.read_length = max_read_length;
 	parameters.ref_length = max_ref_length;
 
-	char const * libPath = "../bin/libplainKernel.so";
+	char const * libPath = "../bin/libDefaultKernel.so";
 
 	int const dll = DLL_init(libPath, &parameters);
 
@@ -156,22 +156,25 @@ int main(int argc, char *argv[]) {
 
 	plain_kernel = load_alignment_kernel();
 
-	Alignment * alignments = new Alignment[seqNumber];
+	short * scores = new short[seqNumber]();
+	Alignment * alignments = new Alignment[seqNumber]();
+
+	plain_kernel->compute_alignments(0, seqNumber, reads, refs, alignments);
+	plain_kernel->score_alignments(0, seqNumber, reads,refs, scores);
+
+	//SWKernel * kernel = new SWKernel();
+
+	//kernel->compute_alignments(0,seqNumber,reads,refs,alignments);
 
 		for (int i = 0; i < seqNumber; ++i) {
-			char const * const * const read = reads + i;
-			char const * const * const ref = refs + i;
-
-			std::cout << "Read: " << *read << std::endl;
-			std::cout << "Ref: " << *ref << std::endl;
-
-			plain_kernel->compute_alignments(1 ,0, read,ref, &alignments[i]);
-
+			std::cout << "Read: " << reads[i] << std::endl;
+			std::cout << "Ref: " << refs[i] << std::endl;
 			std::cout << "==================" << std::endl << "\"";
 			std::cout << alignments[i].read + alignments[i].readStart;
 			std::cout << "\"" << std::endl << "\"";
 			std::cout << alignments[i].ref + alignments[i].refStart;
 			std::cout << "\"" << std::endl << "==================" << std::endl;
+			std::cout << "Score: " << scores[i] << std::endl << std::endl;
 
 		}
 

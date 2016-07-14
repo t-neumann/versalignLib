@@ -1,6 +1,6 @@
 MESSAGE( STATUS "CMAKE_CURRENT_BINARY_DIR: " ${CMAKE_CURRENT_BINARY_DIR} )
 MESSAGE( STATUS "CMAKE_CURRENT_SOURCE_DIR: " ${CMAKE_CURRENT_SOURCE_DIR} )
 
-add_subdirectory (plain)
+add_subdirectory (default)
 add_subdirectory (AVX-SSE)
 add_subdirectory (OpenCL)

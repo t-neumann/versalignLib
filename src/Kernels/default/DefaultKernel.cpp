@@ -1,11 +1,11 @@
 /*
- * SWAligner.cpp
+ * DefaultKernel.cpp
  *
  *  Created on: May 23, 2016
  *      Author: tobias.neumann
  */
 
-#include "SWKernel.h"
+#include "DefaultKernel.h"
 
 using std::cout;
 using std::endl;
@@ -14,16 +14,66 @@ inline short max(short a, short b) {
 	return a > b ? a : b;
 }
 
-// Class method implementation
+// Class methods implementation
 
-SWKernel::~SWKernel() {
-	// TODO Auto-generated destructor stub
+void DefaultKernel::compute_alignments(int const & opt, int const & aln_number, char const * const * const reads,
+				char const * const * const refs, Alignment * const alignments) {
+
+		int alignment_algorithm = opt & 0xF;
+
+		fp_alignment_call alignment_call = 0;
+
+		switch(alignment_algorithm) {
+			case 0:
+				alignment_call = &DefaultKernel::calc_alignment_smith_waterman;
+				//calc_alignment_smith_waterman(reads, refs, alignments);
+				break;
+			case 1:
+				alignment_call = &DefaultKernel::calc_alignment_needleman_wunsch;
+				//calc_alignment_needleman_wunsch(reads, refs, alignments);
+				break;
+			default:
+				// Unsupported mode
+				break;
+		}
+
+		if (alignment_call != 0) {
+			for (int i = 0; i < aln_number; ++i) {
+				(this->*alignment_call)(reads[i],refs[i],&alignments[i]);
+			}
+		}
+	}
+
+void DefaultKernel::score_alignments(int const & opt, int const & aln_number, char const * const * const reads,
+				char const * const * const refs, short * const scores) {
+	int alignment_algorithm = opt & 0xF;
+
+	fp_scoring_call scoring_call = 0;
+
+			switch(alignment_algorithm) {
+				case 0:
+					scoring_call = &DefaultKernel::score_alignment_smith_waterman;
+					//calc_alignment_smith_waterman(reads, refs, alignments);
+					break;
+				case 1:
+					scoring_call = &DefaultKernel::score_alignment_needleman_wunsch;
+					//calc_alignment_needleman_wunsch(reads, refs, alignments);
+					break;
+				default:
+					// Unsupported mode
+					break;
+			}
+
+			if (scoring_call != 0) {
+				for (int i = 0; i < aln_number; ++i) {
+					(this->*scoring_call)(reads[i],refs[i],&scores[i]);
+				}
+			}
+
 }
 
-// Main functions
-
-void SWKernel::score_alignment(char const * const * const read,
-		char const * const * const ref, short * const scores) {
+void DefaultKernel::score_alignment_smith_waterman(char const * const read,
+		char const * const ref, short * const scores) {
 
 	short max_score = 0;
 
@@ -40,7 +90,7 @@ void SWKernel::score_alignment(char const * const * const read,
 			short diag = matrix[prev_row * (refLength + 1) + ref_pos];
 			short left = matrix[current_row * (refLength + 1) + ref_pos];
 
-			diag += base_score[char_to_score[read[0][read_pos]]][char_to_score[ref[0][ref_pos]]];
+			diag += base_score[char_to_score[read[read_pos]]][char_to_score[ref[ref_pos]]];
 
 			short cur = max(up + scoreGapRef, max(left + scoreGapRead, max(diag, 0)));
 
@@ -56,8 +106,8 @@ void SWKernel::score_alignment(char const * const * const read,
 	memset(scores, max_score, 1);
 }
 
-void SWKernel::score_alignment_needleman_wunsch(char const * const * const read,
-		char const * const * const ref, short * const scores) {
+void DefaultKernel::score_alignment_needleman_wunsch(char const * const read,
+		char const * const ref, short * const scores) {
 
 	short * matrix = new short[(refLength + 1) * 2]();
 
@@ -74,7 +124,7 @@ void SWKernel::score_alignment_needleman_wunsch(char const * const * const read,
 			short diag = matrix[prev_row * (refLength + 1) + ref_pos];
 			short left = matrix[current_row * (refLength + 1) + ref_pos];
 
-			diag += base_score[char_to_score[read[0][read_pos]]][char_to_score[ref[0][ref_pos]]];
+			diag += base_score[char_to_score[read[read_pos]]][char_to_score[ref[ref_pos]]];
 
 			short cur = max(up + scoreGapRef, max(left + scoreGapRead, diag));
 
@@ -99,8 +149,8 @@ void SWKernel::score_alignment_needleman_wunsch(char const * const * const read,
 	delete [] matrix; matrix = 0;
 }
 
-void SWKernel::calculate_alignment_matrix(char const * const * const read,
-		char const * const * const ref, alnMat const matrix, short * const best_coordinates) {
+void DefaultKernel::calculate_alignment_matrix_smith_waterman(char const * const read,
+		char const * const ref, alnMat const matrix, short * const best_coordinates) {
 
 	short best_read_pos = 0;
 	short best_ref_pos = 0;
@@ -121,7 +171,7 @@ void SWKernel::calculate_alignment_matrix(char const * const * const read,
 			short diag = scoreMat[prev_row_score * (refLength + 1) + ref_pos];
 			short left = scoreMat[current_row_score * (refLength + 1) + ref_pos];
 
-			diag += base_score[char_to_score[read[0][read_pos]]][char_to_score[ref[0][ref_pos]]];
+			diag += base_score[char_to_score[read[read_pos]]][char_to_score[ref[ref_pos]]];
 
 			short cur = max(up + scoreGapRef, max(left + scoreGapRead, max(diag, 0)));
 
@@ -163,8 +213,8 @@ void SWKernel::calculate_alignment_matrix(char const * const * const read,
 	best_coordinates[1] = best_ref_pos;
 }
 
-void SWKernel::calculate_alignment_matrix_needleman_wunsch(char const * const * const read,
-		char const * const * const ref, alnMat const matrix, short * const best_coordinates) {
+void DefaultKernel::calculate_alignment_matrix_needleman_wunsch(char const * const read,
+		char const * const ref, alnMat const matrix, short * const best_coordinates) {
 
 	//for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
 	//	matrix[ref_pos + 1] = LEFT;
@@ -203,7 +253,7 @@ void SWKernel::calculate_alignment_matrix_needleman_wunsch(char const * const * 
 		scoreMat[current_row_score * (refLength + 1)] = (read_pos + 1) * scoreGapRef;
 
 		// 0 score means forbidden char
-		if (max_read_pos == readLength - 1 && char_to_score[read[0][read_pos]] == 0) {
+		if (max_read_pos == readLength - 1 && char_to_score[read[read_pos]] == 0) {
 			max_read_pos = read_pos - 1;
 		}
 
@@ -224,7 +274,7 @@ void SWKernel::calculate_alignment_matrix_needleman_wunsch(char const * const * 
 			short diag = scoreMat[prev_row_score * (refLength + 1) + ref_pos];
 			short left = scoreMat[current_row_score * (refLength + 1) + ref_pos];
 
-			diag += base_score[char_to_score[read[0][read_pos]]][char_to_score[ref[0][ref_pos]]];
+			diag += base_score[char_to_score[read[read_pos]]][char_to_score[ref[ref_pos]]];
 
 			short cur = max(up + scoreGapRef, max(left + scoreGapRead, diag));
 
@@ -240,7 +290,7 @@ void SWKernel::calculate_alignment_matrix_needleman_wunsch(char const * const * 
 				pointer = LEFT;
 			}
 
-			if (max_ref_pos == refLength - 1 && char_to_score[ref[0][ref_pos]] == 0) {
+			if (max_ref_pos == refLength - 1 && char_to_score[ref[ref_pos]] == 0) {
 				//std::cout << std::endl << "Max ref is " << ref_pos - 1 << std::endl;
 				max_ref_pos = ref_pos - 1;
 			}
@@ -284,8 +334,8 @@ void SWKernel::calculate_alignment_matrix_needleman_wunsch(char const * const * 
 
 }
 
-void SWKernel::calc_alignment(char const * const * const read,
-		char const * const * const ref, Alignment * const alignment) {
+void DefaultKernel::calc_alignment_smith_waterman(char const * const read,
+		char const * const ref, Alignment * const alignment) {
 
 	std::cout << "Aln Length:\t" << alnLength << std::endl;
 
@@ -296,7 +346,7 @@ void SWKernel::calc_alignment(char const * const * const read,
 
 	std::cout << "Score matrix" << std::endl;
 
-	calculate_alignment_matrix(read, ref, matrix, best_coordinates);
+	calculate_alignment_matrix_smith_waterman(read, ref, matrix, best_coordinates);
 
 //	std::cout << "Matrix:" << std::endl;
 //	for (int i = 0; i < readLength + 1; ++i) {
@@ -325,15 +375,15 @@ void SWKernel::calc_alignment(char const * const * const read,
 
 		if (backtrack == UP) {
 			alignments[alnLength + aln_pos] = '-';
-			alignments[aln_pos] = read[0][read_pos--];
+			alignments[aln_pos] = read[read_pos--];
 		}
 		if (backtrack == LEFT) {
 			alignments[aln_pos] = '-';
-			alignments[alnLength + aln_pos] = ref[0][ref_pos--];
+			alignments[alnLength + aln_pos] = ref[ref_pos--];
 		}
 		if (backtrack == DIAG) {
-			alignments[aln_pos] = read[0][read_pos--];
-			alignments[alnLength + aln_pos] = ref[0][ref_pos--];
+			alignments[aln_pos] = read[read_pos--];
+			alignments[alnLength + aln_pos] = ref[ref_pos--];
 		}
 		backtrack = matrix[(read_pos + 1) * (refLength + 1) + ref_pos + 1];
 		--aln_pos;
@@ -358,8 +408,8 @@ void SWKernel::calc_alignment(char const * const * const read,
 	delete [] matrix; matrix = 0;
 }
 
-void SWKernel::calc_alignment_needleman_wunsch(char const * const * const read,
-		char const * const * const ref, Alignment * const alignment) {
+void DefaultKernel::calc_alignment_needleman_wunsch(char const * const read,
+		char const * const ref, Alignment * const alignment) {
 
 	std::cout << "Aln Length:\t" << alnLength << std::endl;
 
@@ -402,15 +452,15 @@ void SWKernel::calc_alignment_needleman_wunsch(char const * const * const read,
 
 		if (backtrack == UP) {
 			alignments[alnLength + aln_pos] = '-';
-			alignments[aln_pos] = read[0][read_pos--];
+			alignments[aln_pos] = read[read_pos--];
 		}
 		if (backtrack == LEFT) {
 			alignments[aln_pos] = '-';
-			alignments[alnLength + aln_pos] = ref[0][ref_pos--];
+			alignments[alnLength + aln_pos] = ref[ref_pos--];
 		}
 		if (backtrack == DIAG) {
-			alignments[aln_pos] = read[0][read_pos--];
-			alignments[alnLength + aln_pos] = ref[0][ref_pos--];
+			alignments[aln_pos] = read[read_pos--];
+			alignments[alnLength + aln_pos] = ref[ref_pos--];
 		}
 		backtrack = matrix[(read_pos + 1) * (refLength + 1) + ref_pos + 1];
 		--aln_pos;
