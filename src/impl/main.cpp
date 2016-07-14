@@ -7,6 +7,7 @@
 
 #include "AlignmentKernel.h"
 #include "CustomParameters.h"
+#include "dll_handling.h"
 #include "Kernels/plain/SWKernel.h"
 #include "Kernels/AVX-SSE/SSEKernel.h"
 //#include "Kernels/AVX-SSE/AVXKernel.h"
@@ -141,12 +142,38 @@ int main(int argc, char *argv[]) {
 
 	size_t max_ref_length =	pad(refs, seqNumber, REF_PAD);
 
-	AlignmentParameters * _parameters = 0;
-
 	parameters.read_length = max_read_length;
 	parameters.ref_length = max_ref_length;
 
-	SetConfig(&parameters);
+	char const * libPath = "../bin/libplainKernel.so";
+
+	int const dll = DLL_init(libPath, &parameters);
+
+	fp_load_alignment_kernel load_alignment_kernel = (fp_load_alignment_kernel) DLL_function_retreival(dll, "spawn_alignment_kernel");
+	fp_delete_alignment_kernel delete_alignment_kernel = (fp_delete_alignment_kernel) DLL_function_retreival(dll, "delete_alignment_kernel");
+
+	AlignmentKernel * plain_kernel = 0;
+
+	plain_kernel = load_alignment_kernel();
+
+	Alignment * alignments = new Alignment[seqNumber];
+
+		for (int i = 0; i < seqNumber; ++i) {
+			char const * const * const read = reads + i;
+			char const * const * const ref = refs + i;
+
+			std::cout << "Read: " << *read << std::endl;
+			std::cout << "Ref: " << *ref << std::endl;
+
+			plain_kernel->compute_alignments(1 ,0, read,ref, &alignments[i]);
+
+			std::cout << "==================" << std::endl << "\"";
+			std::cout << alignments[i].read + alignments[i].readStart;
+			std::cout << "\"" << std::endl << "\"";
+			std::cout << alignments[i].ref + alignments[i].refStart;
+			std::cout << "\"" << std::endl << "==================" << std::endl;
+
+		}
 
 //	run_ocl_test(reads, refs, seqNumber, max_read_length, max_ref_length);
 
@@ -186,11 +213,11 @@ int main(int argc, char *argv[]) {
 //
 //	ssekernel->init(max_read_length, max_ref_length);
 //
-	Timer timer;
+//	Timer timer;
 //
 //	timer.start();
 //
-	Alignment * alignments = 0;
+//	Alignment * alignments = 0;
 //
 //	for (int i = 0; i < 2; ++i) {
 //
@@ -245,7 +272,7 @@ int main(int argc, char *argv[]) {
 //	delete ssekernel; ssekernel = 0;
 //	delete scores; scores = 0;
 
-	SWKernel * kernel = new SWKernel();
+//	SWKernel * kernel = new SWKernel();
 	//kernel->init(max_read_length, max_ref_length);
 
 //	for (int i = 0; i < seqNumber; ++i) {
@@ -276,32 +303,32 @@ int main(int argc, char *argv[]) {
 //		cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
 //	}
 
-	alignments = new Alignment[seqNumber];
+//	alignments = new Alignment[seqNumber];
+//
+//	for (int i = 0; i < seqNumber; ++i) {
+//		char const * const * const read = reads + i;
+//		char const * const * const ref = refs + i;
+//
+//		std::cout << "Read: " << *read << std::endl;
+//		std::cout << "Ref: " << *ref << std::endl;
+//
+//		timer.start();
+//
+//		kernel->calc_alignment_needleman_wunsch(read, ref, &alignments[i]);
+//
+//		timer.stop();
+//
+//		cout << "Alignment took " << timer.getElapsedTimeInMicroSec() << " ms" << endl;
+//
+//		std::cout << "==================" << std::endl << "\"";
+//		std::cout << alignments[i].read + alignments[i].readStart;
+//		std::cout << "\"" << std::endl << "\"";
+//		std::cout << alignments[i].ref + alignments[i].refStart;
+//		std::cout << "\"" << std::endl << "==================" << std::endl;
+//
+//	}
 
-	for (int i = 0; i < seqNumber; ++i) {
-		char const * const * const read = reads + i;
-		char const * const * const ref = refs + i;
-
-		std::cout << "Read: " << *read << std::endl;
-		std::cout << "Ref: " << *ref << std::endl;
-
-		timer.start();
-
-		kernel->calc_alignment_needleman_wunsch(read, ref, &alignments[i]);
-
-		timer.stop();
-
-		cout << "Alignment took " << timer.getElapsedTimeInMicroSec() << " ms" << endl;
-
-		std::cout << "==================" << std::endl << "\"";
-		std::cout << alignments[i].read + alignments[i].readStart;
-		std::cout << "\"" << std::endl << "\"";
-		std::cout << alignments[i].ref + alignments[i].refStart;
-		std::cout << "\"" << std::endl << "==================" << std::endl;
-
-	}
-
-	delete kernel; kernel = 0;
+//	delete kernel; kernel = 0;
 
 	cout << "Sizeof char * " << sizeof(char *) << endl;
 	cout << "Sizeof int * " << sizeof(int *) << endl;

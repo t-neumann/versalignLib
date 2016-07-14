@@ -6,10 +6,6 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/src/cmake")
 include_directories (.)
 include_directories ("${PROJECT_SOURCE_DIR}/include")
 
-add_subdirectory (util)
-add_subdirectory (Kernels)
-add_subdirectory (Timer)
-
 FIND_PATH(OPENCL_INCLUDE_DIR
 	NAMES
 		CL/cl.h OpenCL/cl.h
@@ -68,17 +64,7 @@ CHECK_COMPILER_FLAG(-mavx2 AVX2_FLAG)
 #	message("No AVX2 support detected")
 #endif()
 
-add_executable (Versalign main.cpp)
-message(STATUS "Linking plain Kernel")
-target_link_libraries (Versalign plainKernel)
-message(STATUS "Linking openCL Kernel")
-target_link_libraries (Versalign openCLKernel)
-message(STATUS "Linking SSE Kernel")
-target_link_libraries (Versalign SSEKernel)
-message(STATUS "Linking AVX Kernel")
-#target_link_libraries (Versalign AVXKernel)
-message(STATUS "Linking Utils")
-target_link_libraries (Versalign Timer)
-target_link_libraries (Versalign Utils)
-
-target_link_libraries(Versalign ${OPENCL_LIBRARY})
+add_subdirectory (util)
+add_subdirectory (Kernels)
+add_subdirectory (Timer)
+add_subdirectory (impl)

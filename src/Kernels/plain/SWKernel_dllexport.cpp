@@ -15,11 +15,23 @@
 #define dllexport
 #endif
 
+
+void SetConfig(AlignmentParameters * parameters) {
+	_parameters = parameters;
+}
+
 extern "C" dllexport AlignmentKernel * spawn_alignment_kernel() {
 
 	AlignmentKernel * kernel = new SWKernel();
 
 	return kernel;
+}
+
+
+AlignmentParameters * _parameters = 0;
+
+extern "C" dllexport void set_parameters(AlignmentParameters * parameters) {
+	_parameters = parameters;
 }
 
 

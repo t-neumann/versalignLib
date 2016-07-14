@@ -139,11 +139,25 @@ public:
 	virtual void calc_alignment_needleman_wunsch(char const * const * const read,
 			char const * const * const ref, Alignment * const alignment);
 
-	virtual void compute_alignment(int const & opt, int const & aln_number, char const * const * const reads,
+	virtual void compute_alignments(int const & opt, int const & aln_number, char const * const * const reads,
 				char const * const * const refs, Alignment * const alignments) {
+
+		int alignment_algorithm = opt & 0xF;
+
+		switch(alignment_algorithm) {
+			case 0:
+				calc_alignment(reads, refs, alignments);
+				break;
+			case 1:
+				calc_alignment_needleman_wunsch(reads, refs, alignments);
+				break;
+			default:
+				// Unsupported mode
+				break;
+		}
 	}
 
-	virtual void score_alignment(int const & opt, int const & aln_number, char const * const * const reads,
+	virtual void score_alignments(int const & opt, int const & aln_number, char const * const * const reads,
 				char const * const * const refs, short * const scores) {
 	}
 

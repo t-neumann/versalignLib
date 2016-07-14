@@ -16,7 +16,7 @@ public:
 	virtual ~AlignmentParameters() {};
 };
 
-typedef void (*set_config)(AlignmentParameters const *);
+typedef void (*fp_set_parameters)(AlignmentParameters const *);
 
 extern AlignmentParameters* _parameters;
 #define Parameters (*_parameters)

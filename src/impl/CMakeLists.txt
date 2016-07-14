@@ -1,0 +1,17 @@
+MESSAGE( STATUS "CMAKE_CURRENT_BINARY_DIR: " ${CMAKE_CURRENT_BINARY_DIR} )
+MESSAGE( STATUS "CMAKE_CURRENT_SOURCE_DIR: " ${CMAKE_CURRENT_SOURCE_DIR} )
+
+add_executable (Versalign main.cpp dll_handling.cpp)
+message(STATUS "Linking plain Kernel")
+target_link_libraries (Versalign plainKernel)
+message(STATUS "Linking openCL Kernel")
+target_link_libraries (Versalign openCLKernel)
+message(STATUS "Linking SSE Kernel")
+target_link_libraries (Versalign SSEKernel)
+message(STATUS "Linking AVX Kernel")
+#target_link_libraries (Versalign AVXKernel)
+message(STATUS "Linking Utils")
+target_link_libraries (Versalign Timer)
+target_link_libraries (Versalign Utils)
+
+target_link_libraries(Versalign ${OPENCL_LIBRARY})

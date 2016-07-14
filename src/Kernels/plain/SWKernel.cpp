@@ -14,12 +14,6 @@ inline short max(short a, short b) {
 	return a > b ? a : b;
 }
 
-AlignmentParameters * _parameters = 0;
-
-void SetConfig(AlignmentParameters * parameters) {
-	_parameters = parameters;
-}
-
 // Class method implementation
 
 SWKernel::~SWKernel() {

@@ -18,20 +18,28 @@ struct Alignment {
 	short refEnd;
 };
 
+/*
+	Options:
+
+	int alignment_algorithm = opt & 0xF;
+			-> 0 .. Smith-Waterman
+			-> 1 .. Needleman-Wunsch
+*/
+
 class AlignmentKernel {
 
 public:
 
 	virtual ~AlignmentKernel() {}
 
-	virtual void score_alignment(int const & opt, int const & aln_number, char const * const * const reads,
+	virtual void score_alignments(int const & opt, int const & aln_number, char const * const * const reads,
 			char const * const * const refs, short * const scores) = 0;
-	virtual void compute_alignment(int const & opt, int const & aln_number, char const * const * const reads,
+	virtual void compute_alignments(int const & opt, int const & aln_number, char const * const * const reads,
 			char const * const * const refs, Alignment * const alignments) = 0;
 };
 
-typedef AlignmentKernel * (*load_alignment_kernel)();
-typedef void (*delete_alignment_kernel)(AlignmentKernel*);
+typedef AlignmentKernel * (*fp_load_alignment_kernel)();
+typedef void (*fp_delete_alignment_kernel)(AlignmentKernel*);
 
 
 
