@@ -62,19 +62,28 @@ void AVXKernel::compute_alignments(int const & opt, int const & aln_number, char
 		//				<< "\n# batches:\t" << num_batches
 		//				<< "\n# overflow:\t" << mod << std::endl;
 
-		while (num_batches > 0) {
+		#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
+		for (int i = num_batches; i > 0; --i) {
 			(this->*alignment_call)(reads + cur_alignment,refs + cur_alignment,alignments + cur_alignment);
-
-			//			for (int i = cur_alignment; i < cur_alignment + SSE_SIZE; ++i) {
-			//				std::cout << "==================" << std::endl << "\"";
-			//				std::cout << alignments[i].read + alignments[i].readStart;
-			//				std::cout << "\"" << std::endl << "\"";
-			//				std::cout << alignments[i].ref + alignments[i].refStart;
-			//				std::cout << "\"" << std::endl << "==================" << std::endl;
-			//			}
-			cur_alignment += AVX_SIZE;
-			--num_batches;
+//			for (int i = cur_alignment; i < cur_alignment + AVX_SIZE; ++i) {
+//				std::cout << "Score:\t" << scores32[i] << std::endl;
+//			}
+			cur_alignment+= AVX_SIZE;
 		}
+
+//		while (num_batches > 0) {
+//			(this->*alignment_call)(reads + cur_alignment,refs + cur_alignment,alignments + cur_alignment);
+//
+//			//			for (int i = cur_alignment; i < cur_alignment + SSE_SIZE; ++i) {
+//			//				std::cout << "==================" << std::endl << "\"";
+//			//				std::cout << alignments[i].read + alignments[i].readStart;
+//			//				std::cout << "\"" << std::endl << "\"";
+//			//				std::cout << alignments[i].ref + alignments[i].refStart;
+//			//				std::cout << "\"" << std::endl << "==================" << std::endl;
+//			//			}
+//			cur_alignment += AVX_SIZE;
+//			--num_batches;
+//		}
 
 		// Number of alignments not multiple of SSE_SIZE (8 alignments in SIMD registers)
 		// -> Need to fillup remaining slots with \0 sequences
@@ -154,19 +163,28 @@ void AVXKernel::score_alignments(int const & opt, int const & aln_number, char c
 
 		int cur_alignment = 0;
 
-				std::cout << "Started AVX2 scoring...\n"
-						<< "# alignments:\t" << aln_number
-						<< "\n# batches:\t" << num_batches
-						<< "\n# overflow:\t" << mod << std::endl;
+//				std::cout << "Started AVX2 scoring...\n"
+//						<< "# alignments:\t" << aln_number
+//						<< "\n# batches:\t" << num_batches
+//						<< "\n# overflow:\t" << mod << std::endl;
 
-		while (num_batches > 0) {
+		#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
+		for (int i = num_batches; i > 0; --i) {
 			(this->*scoring_call)(reads + cur_alignment,refs + cur_alignment,scores32 + cur_alignment);
-			for (int i = cur_alignment; i < cur_alignment + AVX_SIZE; ++i) {
-				std::cout << "Score:\t" << scores32[i] << std::endl;
-			}
-			cur_alignment += AVX_SIZE;
-			--num_batches;
+//			for (int i = cur_alignment; i < cur_alignment + AVX_SIZE; ++i) {
+//				std::cout << "Score:\t" << scores32[i] << std::endl;
+//			}
+			cur_alignment+= AVX_SIZE;
 		}
+
+//		while (num_batches > 0) {
+//			(this->*scoring_call)(reads + cur_alignment,refs + cur_alignment,scores32 + cur_alignment);
+//			for (int i = cur_alignment; i < cur_alignment + AVX_SIZE; ++i) {
+//				std::cout << "Score:\t" << scores32[i] << std::endl;
+//			}
+//			cur_alignment += AVX_SIZE;
+//			--num_batches;
+//		}
 
 		memcpy(scores, scores32, sizeof(short) * (aln_number / AVX_SIZE) * AVX_SIZE);
 
@@ -202,7 +220,7 @@ void AVXKernel::score_alignments(int const & opt, int const & aln_number, char c
 
 			for (int i = 0; i < mod; ++i) {
 				scores[cur_alignment + i] = scores32[i];
-				std::cout << "Score:\t" << scores[cur_alignment + i] << std::endl;
+				//std::cout << "Score:\t" << scores[cur_alignment + i] << std::endl;
 
 			}
 

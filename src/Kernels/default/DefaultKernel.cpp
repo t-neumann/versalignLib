@@ -38,6 +38,8 @@ void DefaultKernel::compute_alignments(int const & opt, int const & aln_number, 
 	}
 
 	if (alignment_call != 0) {
+		//omp_set_dynamic(0);     // Explicitly disable dynamic teams
+		#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
 		for (int i = 0; i < aln_number; ++i) {
 			(this->*alignment_call)(reads[i],refs[i],&alignments[i]);
 		}
@@ -66,6 +68,8 @@ void DefaultKernel::score_alignments(int const & opt, int const & aln_number, ch
 	}
 
 	if (scoring_call != 0) {
+		//omp_set_dynamic(0);     // Explicitly disable dynamic teams
+		#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
 		for (int i = 0; i < aln_number; ++i) {
 			(this->*scoring_call)(reads[i],refs[i],&scores[i]);
 		}
@@ -337,14 +341,14 @@ void DefaultKernel::calculate_alignment_matrix_needleman_wunsch(char const * con
 void DefaultKernel::calc_alignment_smith_waterman(char const * const read,
 		char const * const ref, Alignment * const alignment) {
 
-	std::cout << "Aln Length:\t" << alnLength << std::endl;
+	//std::cout << "Aln Length:\t" << alnLength << std::endl;
 
 	alnMat matrix = new char [(refLength + 1) * (readLength + 1)];
 	memset(matrix, START, (refLength + 1) * (readLength + 1) * sizeof(char));
 
 	short * best_coordinates = new short[2];
 
-	std::cout << "Score matrix" << std::endl;
+	//std::cout << "Score matrix" << std::endl;
 
 	calculate_alignment_matrix_smith_waterman(read, ref, matrix, best_coordinates);
 
@@ -361,17 +365,17 @@ void DefaultKernel::calc_alignment_smith_waterman(char const * const read,
 	int read_pos = best_coordinates[0];
 	int ref_pos = best_coordinates[1];
 
-	std::cout << "Best read: " << read_pos << std::endl << "Best ref: " << ref_pos << std::endl;
+	//std::cout << "Best read: " << read_pos << std::endl << "Best ref: " << ref_pos << std::endl;
 
 	int aln_pos = alnLength - 2;
 
 	char backtrack = matrix[(read_pos + 1) * (refLength + 1) + ref_pos + 1];
 
-	std::cout << "Backtrack start:\t";
+	//std::cout << "Backtrack start:\t";
 
 	while(backtrack != START) {
 
-		std::cout << backtrack;
+		//std::cout << backtrack;
 
 		if (backtrack == UP) {
 			alignments[alnLength + aln_pos] = '-';
@@ -401,7 +405,7 @@ void DefaultKernel::calc_alignment_smith_waterman(char const * const read,
 	alignment->readEnd = alnLength - 1;
 	alignment->refEnd = alnLength - 1;
 
-	std::cout << "\tBacktrack end" << std::endl;
+	//std::cout << "\tBacktrack end" << std::endl;
 
 	delete [] alignments; alignments = 0;
 	delete [] best_coordinates; best_coordinates = 0;

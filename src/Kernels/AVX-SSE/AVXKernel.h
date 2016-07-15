@@ -48,13 +48,13 @@ public:
 
 		alnLength = refLength + readLength;
 
-		std::cout << "Match: " << scoreMatch
-						<< "\nMismatch: " << scoreMismatch
-						<< "\nGap_read: " << scoreGapRead
-						<< "\nGap_ref: " << scoreGapRef
-						<< "\nRead_length: " << readLength
-						<< "\nRef_length: " << refLength
-						<< "\nAln_length: " << alnLength << std::endl;
+//		std::cout << "Match: " << scoreMatch
+//						<< "\nMismatch: " << scoreMismatch
+//						<< "\nGap_read: " << scoreGapRead
+//						<< "\nGap_ref: " << scoreGapRef
+//						<< "\nRead_length: " << readLength
+//						<< "\nRef_length: " << refLength
+//						<< "\nAln_length: " << alnLength << std::endl;
 
 		if (exception) {
 			throw "Cannot instantiate Kernel. Lacking parameters";

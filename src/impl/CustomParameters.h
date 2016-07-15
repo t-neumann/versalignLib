@@ -19,6 +19,8 @@ class CustomParameters : public AlignmentParameters {
 				return read_length;
 			} else if (strcmp(key, "ref_length") == 0) {
 				return ref_length;
+			} else if (strcmp(key, "num_threads") == 0) {
+				return num_threads;
 			}
 			std::string exception("Unknown int parameter: ");
 			exception += key;
@@ -38,17 +40,20 @@ class CustomParameters : public AlignmentParameters {
 				return true;
 			} else if (strcmp(key, "ref_length") == 0) {
 				return true;
+			} else if (strcmp(key, "num_threads") == 0) {
+				return true;
 			}
 			return false;
 		}
 
 		int read_length = 0;
 		int ref_length = 0;
+		int num_threads = 1;
 
 	private :
 
-		short score_match = 2;
-		short score_mismatch = -1;
-		short score_gap_read = -3;
-		short score_gap_ref = -3;
+		int score_match = 2;
+		int score_mismatch = -1;
+		int score_gap_read = -3;
+		int score_gap_ref = -3;
 };

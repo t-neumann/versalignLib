@@ -122,12 +122,148 @@ int main(int argc, char *argv[]) {
 			"AGGAAGAG",
 			"TT",
 			"CCCCC",
+			"AGGGGGGA",
+			"AGGGGGGA",
+			"AATTTTGCC",
+			"TTTTTAA",
+			"ATAGATAGATAG",
+			"AGCAGTAC",
+			"AGAGAGAG",
+			"",
+			"ATATATAT",
+			"AGG",
+			"TAA",
+			"AGAG",
+			"AGCAGTAG",
+			"TATAC",
+			"AGGAAGAG",
+			"TT",
+			"CCCCC",
+			"AGGGGGGA",
+			"AGGGGGGA",
+			"AATTTTGCC",
+			"TTTTTAA",
+			"ATAGATAGATAG",
+			"AGCAGTAC",
+			"AGAGAGAG",
+			"",
+			"ATATATAT",
+			"AGG",
+			"TAA",
+			"AGAG",
+			"AGCAGTAG",
+			"TATAC",
+			"AGGAAGAG",
+			"TT",
+			"CCCCC",
+			"AGGGGGGA",
+			"AGGGGGGA",
+			"AATTTTGCC",
+			"TTTTTAA",
+			"ATAGATAGATAG",
+			"AGCAGTAC",
+			"AGAGAGAG",
+			"",
+			"ATATATAT",
+			"AGG",
+			"TAA",
+			"AGAG",
+			"AGCAGTAG",
+			"TATAC",
+			"AGGAAGAG",
+			"TT",
+			"CCCCC",
+			"AGGGGGGA",
+			"AGGGGGGA",
+			"AATTTTGCC",
+			"TTTTTAA",
+			"ATAGATAGATAG",
+			"AGCAGTAC",
+			"AGAGAGAG",
+			"",
+			"ATATATAT",
+			"AGG",
+			"TAA",
+			"AGAG",
+			"AGCAGTAG",
+			"TATAC",
+			"AGGAAGAG",
+			"TT",
+			"CCCCC",
 			"AGGGGGGA"
 	};
 
 	char const
 	* refs[] =
 	{
+			"AGCAGATGAGGGCGGATAGC",
+			"TTTTGCCAACGCATGGCAGA",
+			"ATGACGACGCAGTGCTTTTT",
+			"GCAATAGAATAGATAGTGGT",
+			"TAGCATCAAGCAGTACTACA",
+			"TCTCTCTCTCTCTCTCTCTC",
+			"AGCAGATGACATGCATGCAA",
+			"",
+			"AGCAGATGAGGGCGGATAGC",
+			"TTTTGCCAACGCATGGCAGA",
+			"ATGACGACGCAGTGCTTTTT",
+			"GCAATAGAATAGATAGTGGT",
+			"TAGCATCAAGCAGTACTACA",
+			"TCTCTCTCTCTCTCTCTCTC",
+			"AGCAGATGACATGCATGCAA",
+			"",
+			"AGCAGATGAGGGCGGATAGC",
+			"AGCAGATGAGGGCGGATAGC",
+			"TTTTGCCAACGCATGGCAGA",
+			"ATGACGACGCAGTGCTTTTT",
+			"GCAATAGAATAGATAGTGGT",
+			"TAGCATCAAGCAGTACTACA",
+			"TCTCTCTCTCTCTCTCTCTC",
+			"AGCAGATGACATGCATGCAA",
+			"",
+			"AGCAGATGAGGGCGGATAGC",
+			"TTTTGCCAACGCATGGCAGA",
+			"ATGACGACGCAGTGCTTTTT",
+			"GCAATAGAATAGATAGTGGT",
+			"TAGCATCAAGCAGTACTACA",
+			"TCTCTCTCTCTCTCTCTCTC",
+			"AGCAGATGACATGCATGCAA",
+			"",
+			"AGCAGATGAGGGCGGATAGC",
+			"AGCAGATGAGGGCGGATAGC",
+			"TTTTGCCAACGCATGGCAGA",
+			"ATGACGACGCAGTGCTTTTT",
+			"GCAATAGAATAGATAGTGGT",
+			"TAGCATCAAGCAGTACTACA",
+			"TCTCTCTCTCTCTCTCTCTC",
+			"AGCAGATGACATGCATGCAA",
+			"",
+			"AGCAGATGAGGGCGGATAGC",
+			"TTTTGCCAACGCATGGCAGA",
+			"ATGACGACGCAGTGCTTTTT",
+			"GCAATAGAATAGATAGTGGT",
+			"TAGCATCAAGCAGTACTACA",
+			"TCTCTCTCTCTCTCTCTCTC",
+			"AGCAGATGACATGCATGCAA",
+			"",
+			"AGCAGATGAGGGCGGATAGC",
+			"AGCAGATGAGGGCGGATAGC",
+			"TTTTGCCAACGCATGGCAGA",
+			"ATGACGACGCAGTGCTTTTT",
+			"GCAATAGAATAGATAGTGGT",
+			"TAGCATCAAGCAGTACTACA",
+			"TCTCTCTCTCTCTCTCTCTC",
+			"AGCAGATGACATGCATGCAA",
+			"",
+			"AGCAGATGAGGGCGGATAGC",
+			"TTTTGCCAACGCATGGCAGA",
+			"ATGACGACGCAGTGCTTTTT",
+			"GCAATAGAATAGATAGTGGT",
+			"TAGCATCAAGCAGTACTACA",
+			"TCTCTCTCTCTCTCTCTCTC",
+			"AGCAGATGACATGCATGCAA",
+			"",
+			"AGCAGATGAGGGCGGATAGC",
 			"AGCAGATGAGGGCGGATAGC",
 			"TTTTGCCAACGCATGGCAGA",
 			"ATGACGACGCAGTGCTTTTT",
@@ -155,6 +291,7 @@ int main(int argc, char *argv[]) {
 
 	parameters.read_length = max_read_length;
 	parameters.ref_length = max_ref_length;
+	parameters.num_threads = 1;
 
 	#ifdef __APPLE__
 		const string libSuffix ("dylib");
@@ -162,6 +299,10 @@ int main(int argc, char *argv[]) {
 		const string libSuffix ("so");
 	#endif
 
+	# ifdef _OPENMP
+		std::cout << "Compiled by an OpenMP-compliant implementation.\n";
+		std::cout << "Using " << parameters.num_threads << " threads.\n";
+	# endif
 
 	string libPath ("../bin/libDefaultKernel.so");
 
@@ -173,58 +314,98 @@ int main(int argc, char *argv[]) {
 		libPath = "../bin/libSSEKernel." + libSuffix;
 	}
 
+	//libPath = "../bin/libDefaultKernel.so";
+
 	int dll = DLL_init(libPath.c_str(), &parameters);
 
 	fp_load_alignment_kernel load_alignment_kernel = (fp_load_alignment_kernel) DLL_function_retreival(dll, "spawn_alignment_kernel");
 	fp_delete_alignment_kernel delete_alignment_kernel = (fp_delete_alignment_kernel) DLL_function_retreival(dll, "delete_alignment_kernel");
+	fp_set_parameters set_parameters = (fp_set_parameters) DLL_function_retreival(dll,"set_parameters");
 
 	AlignmentKernel * plain_kernel = 0;
 
 	plain_kernel = load_alignment_kernel();
 
 	std::cout << "Alignment kernel instantiated.\n";
+	std::cout << "Running with " << parameters.num_threads << " threads.\n";
 
 	short * scores = new short[seqNumber]();
 	Alignment * alignments = new Alignment[seqNumber]();
 
-	//plain_kernel->compute_alignments(0, seqNumber, reads, refs, alignments);
-	//plain_kernel->score_alignments(0, seqNumber, reads,refs, scores);
+	Timer timer;
 
-	//Kernel * kernel = new SWKernel();
+	timer.start();
 
-	//SSEKernel * kernel = new SSEKernel();
+	for (int rep = 0; rep < 10000; ++rep) {
 
-	//AVXKernel * kernel = new AVXKernel();
+		//plain_kernel->compute_alignments(0, seqNumber, reads, refs, alignments);
+		plain_kernel->score_alignments(0, seqNumber, reads,refs, scores);
 
-//	dll = DLL_init("../bin/libAVXKernel.dylib", &parameters);
-//
-//	std::cout << "AVX LIB loaded!\n";
-//	std::cin >> a;
-//
-//	load_alignment_kernel = (fp_load_alignment_kernel) DLL_function_retreival(dll, "spawn_alignment_kernel");
-//	delete_alignment_kernel = (fp_delete_alignment_kernel) DLL_function_retreival(dll, "delete_alignment_kernel");
-//	std::cout << "PF loaded!\n";
-//	std::cin >> a;
+	}
 
-//	plain_kernel = load_alignment_kernel();
+	timer.stop();
 
-	plain_kernel->compute_alignments(0, seqNumber, reads, refs, alignments);
-	plain_kernel->score_alignments(0, seqNumber, reads,refs, scores);
+	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
 
-	//kernel->score_alignments(1,seqNumber,reads,refs,scores);
-	//kernel->compute_alignments(1,seqNumber,reads,refs,alignments);
 
-		for (int i = 0; i < seqNumber; ++i) {
-			std::cout << "Read: " << reads[i] << std::endl;
-			std::cout << "Ref: " << refs[i] << std::endl;
-			std::cout << "==================" << std::endl << "\"";
-			std::cout << alignments[i].read + alignments[i].readStart;
-			std::cout << "\"" << std::endl << "\"";
-			std::cout << alignments[i].ref + alignments[i].refStart;
-			std::cout << "\"" << std::endl << "==================" << std::endl;
-			std::cout << "Score: " << scores[i] << std::endl << std::endl;
+	delete_alignment_kernel(plain_kernel);
 
-		}
+	parameters.num_threads = 4;
+	set_parameters(&parameters);
+
+	plain_kernel = load_alignment_kernel();
+
+	std::cout << "Alignment kernel instantiated.\n";
+	std::cout << "Running with " << parameters.num_threads <<" threads.\n";
+
+
+	timer.start();
+
+	for (int rep = 0; rep < 10000; ++rep) {
+
+		//plain_kernel->compute_alignments(0, seqNumber, reads, refs, alignments);
+		plain_kernel->score_alignments(0, seqNumber, reads,refs, scores);
+
+	}
+
+	timer.stop();
+	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
+
+	delete_alignment_kernel(plain_kernel);
+
+	parameters.num_threads = 8;
+	set_parameters(&parameters);
+
+	plain_kernel = load_alignment_kernel();
+
+	std::cout << "Alignment kernel instantiated.\n";
+	std::cout << "Running with " << parameters.num_threads <<" threads.\n";
+
+
+	timer.start();
+
+	for (int rep = 0; rep < 10000; ++rep) {
+
+		//plain_kernel->compute_alignments(0, seqNumber, reads, refs, alignments);
+		plain_kernel->score_alignments(0, seqNumber, reads,refs, scores);
+
+	}
+
+	timer.stop();
+	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
+
+//	for (int i = 0; i < seqNumber; ++i) {
+//		std::cout << "Read: " << reads[i] << std::endl;
+//		std::cout << "Ref: " << refs[i] << std::endl;
+//		std::cout << "==================" << std::endl << "\"";
+//		std::cout << alignments[i].read + alignments[i].readStart;
+//		std::cout << "\"" << std::endl << "\"";
+//		std::cout << alignments[i].ref + alignments[i].refStart;
+//		std::cout << "\"" << std::endl << "==================" << std::endl;
+//		std::cout << "Score: " << scores[i] << std::endl << std::endl;
+//	}
+
+	return 0;
 
 //	run_ocl_test(reads, refs, seqNumber, max_read_length, max_ref_length);
 
@@ -387,14 +568,14 @@ int main(int argc, char *argv[]) {
 	cout << "Sizeof int " << sizeof(int) << endl;
 	cout << "Sizeof short " << sizeof(short) << endl;
 
-	char N = 78;
+	char F = 78;
 	char n = 110;
 
 	char mask = 223;
 
 	char masked = n & mask;
 
-	cout << N << " " << n << " " << mask << " " << masked;
+	cout << F << " " << n << " " << mask << " " << masked;
 	// N 01001110 -> 78
 	// n 01101110 -> 110
 

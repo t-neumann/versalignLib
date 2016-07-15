@@ -22,13 +22,11 @@ extern "C" dllexport AlignmentKernel * spawn_alignment_kernel() {
 	return kernel;
 }
 
-
 AlignmentParameters * _parameters = 0;
 
 extern "C" dllexport void set_parameters(AlignmentParameters * parameters) {
 	_parameters = parameters;
 }
-
 
 extern "C" dllexport void delete_alignment_kernel(DefaultKernel * instance) {
 	if (instance != 0) {

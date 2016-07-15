@@ -9,7 +9,6 @@
 #include <memory.h>
 #include <iostream>
 #include <cstdio>
-
 // Change to only include in debug mode
 #include <sstream>
 
@@ -64,19 +63,25 @@ void SSEKernel::compute_alignments(int const & opt, int const & aln_number, char
 		//				<< "\n# batches:\t" << num_batches
 		//				<< "\n# overflow:\t" << mod << std::endl;
 
-		while (num_batches > 0) {
-			(this->*alignment_call)(reads + cur_alignment,refs + cur_alignment,alignments + cur_alignment);
 
-			//			for (int i = cur_alignment; i < cur_alignment + SSE_SIZE; ++i) {
-			//				std::cout << "==================" << std::endl << "\"";
-			//				std::cout << alignments[i].read + alignments[i].readStart;
-			//				std::cout << "\"" << std::endl << "\"";
-			//				std::cout << alignments[i].ref + alignments[i].refStart;
-			//				std::cout << "\"" << std::endl << "==================" << std::endl;
-			//			}
-			cur_alignment += SSE_SIZE;
-			--num_batches;
+		#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
+		for (int i = num_batches; i > 0; --i) {
+			(this->*alignment_call)(reads + cur_alignment,refs + cur_alignment,alignments + cur_alignment);
+			cur_alignment+= SSE_SIZE;
 		}
+//		while (num_batches > 0) {
+//			(this->*alignment_call)(reads + cur_alignment,refs + cur_alignment,alignments + cur_alignment);
+//
+//			//			for (int i = cur_alignment; i < cur_alignment + SSE_SIZE; ++i) {
+//			//				std::cout << "==================" << std::endl << "\"";
+//			//				std::cout << alignments[i].read + alignments[i].readStart;
+//			//				std::cout << "\"" << std::endl << "\"";
+//			//				std::cout << alignments[i].ref + alignments[i].refStart;
+//			//				std::cout << "\"" << std::endl << "==================" << std::endl;
+//			//			}
+//			cur_alignment += SSE_SIZE;
+//			--num_batches;
+//		}
 
 		// Number of alignments not multiple of SSE_SIZE (8 alignments in SIMD registers)
 		// -> Need to fillup remaining slots with \0 sequences
@@ -109,12 +114,6 @@ void SSEKernel::compute_alignments(int const & opt, int const & aln_number, char
 
 			for (int i = 0; i < mod; ++i) {
 				alignments[cur_alignment + i] = alignment_overflow[i];
-
-				//				std::cout << "==================" << std::endl << "\"";
-				//				std::cout << alignments[cur_alignment + i].read + alignments[cur_alignment + i].readStart;
-				//				std::cout << "\"" << std::endl << "\"";
-				//				std::cout << alignments[cur_alignment + i].ref + alignments[cur_alignment + i].refStart;
-				//				std::cout << "\"" << std::endl << "==================" << std::endl;
 			}
 
 			delete[] alignment_overflow; alignment_overflow = 0;
@@ -166,14 +165,20 @@ void SSEKernel::score_alignments(int const & opt, int const & aln_number, char c
 		//				<< "\n# batches:\t" << num_batches
 		//				<< "\n# overflow:\t" << mod << std::endl;
 
-		while (num_batches > 0) {
+		#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
+		for (int i = num_batches; i > 0; --i) {
 			(this->*scoring_call)(reads + cur_alignment,refs + cur_alignment,scores + cur_alignment);
-			//			for (int i = cur_alignment; i < cur_alignment + SSE_SIZE; ++i) {
-			//				std::cout << "Score:\t" << scores[i] << std::endl;
-			//			}
-			cur_alignment += SSE_SIZE;
-			--num_batches;
+			cur_alignment+= SSE_SIZE;
 		}
+
+//		while (num_batches > 0) {
+//			(this->*scoring_call)(reads + cur_alignment,refs + cur_alignment,scores + cur_alignment);
+//			//			for (int i = cur_alignment; i < cur_alignment + SSE_SIZE; ++i) {
+//			//				std::cout << "Score:\t" << scores[i] << std::endl;
+//			//			}
+//			cur_alignment += SSE_SIZE;
+//			--num_batches;
+//		}
 
 		// Number of alignments not multiple of SSE_SIZE (8 alignments in SIMD registers)
 		// -> Need to fillup remaining slots with \0 sequences
