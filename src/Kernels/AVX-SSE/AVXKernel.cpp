@@ -129,7 +129,7 @@ void AVXKernel::score_alignments(int const & opt, int const & aln_number, char c
 
 	// Need malloc32 aligned short arrays for AVX result storage
 	short * scores32 = 0;
-	malloc32(scores32, sizeof(short) * aln_number,32);
+	malloc32(scores32, sizeof(short) * aln_number);
 
 	int alignment_algorithm = opt & 0xF;
 
@@ -177,7 +177,7 @@ void AVXKernel::score_alignments(int const & opt, int const & aln_number, char c
 
 		if (mod != 0) {
 
-			malloc32(scores32, sizeof(short) * AVX_SIZE,32);
+			malloc32(scores32, sizeof(short) * AVX_SIZE);
 
 			char const * * const read_overflow = new const char * [AVX_SIZE];
 			char const * * const ref_overflow = new const char * [AVX_SIZE];
@@ -233,7 +233,7 @@ void AVXKernel::calc_alignment_matrix_smith_waterman(char const * const * const 
 
 	short * scoreMat = 0;
 
-	malloc32(scoreMat, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE,32);
+	malloc32(scoreMat, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE);
 	memset(scoreMat, 0, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE);
 
 	// SSE conversion array for current read and ref bases
@@ -400,7 +400,7 @@ void AVXKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 
 	short * scoreMat = 0;
 
-	malloc32(scoreMat, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE,32);
+	malloc32(scoreMat, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE);
 	memset(scoreMat, 0, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE);
 
 	// SSE conversion array for current read and ref bases
@@ -598,11 +598,11 @@ void AVXKernel::calc_alignment_smith_waterman(char const * const * const read,
 	std::cout << "Aln Length:\t" << alnLength << std::endl;
 
 	short * matrix = 0;
-	malloc32(matrix, sizeof(short) * (refLength + 1) * (readLength + 1) * AVX_SIZE,32);
+	malloc32(matrix, sizeof(short) * (refLength + 1) * (readLength + 1) * AVX_SIZE);
 	memset(matrix, 0, (refLength + 1) * (readLength + 1) * AVX_SIZE * sizeof(short));
 
 	short * best_coordinates = 0;
-	malloc32(best_coordinates, sizeof(short) * 2 * AVX_SIZE,32);
+	malloc32(best_coordinates, sizeof(short) * 2 * AVX_SIZE);
 	memset(best_coordinates, 0, sizeof(short) * 2 * AVX_SIZE);
 
 	std::cout << "Score matrix" << std::endl;
@@ -697,11 +697,11 @@ void AVXKernel::calc_alignment_needleman_wunsch(char const * const * const read,
 	std::cout << "Aln Length:\t" << alnLength << std::endl;
 
 	short * matrix = 0;
-	malloc32(matrix, sizeof(short) * (refLength + 1) * (readLength + 1) * AVX_SIZE,32);
+	malloc32(matrix, sizeof(short) * (refLength + 1) * (readLength + 1) * AVX_SIZE);
 	memset(matrix, 0, (refLength + 1) * (readLength + 1) * AVX_SIZE * sizeof(short));
 
 	short * best_coordinates = 0;
-	malloc32(best_coordinates, sizeof(short) * 2 * AVX_SIZE,32);
+	malloc32(best_coordinates, sizeof(short) * 2 * AVX_SIZE);
 	memset(best_coordinates, 0, sizeof(short) * 2 * AVX_SIZE);
 
 	//std::cout << "Score matrix" << std::endl;
@@ -798,7 +798,7 @@ void AVXKernel::score_alignment_smith_waterman (char const * const * const read,
 	// Initialize SSE matrix
 	short * matrix = 0;
 
-	malloc32(matrix, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE,32);
+	malloc32(matrix, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE);
 	memset(matrix, 0, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE);
 
 	// offset for first and second row
@@ -896,7 +896,7 @@ void AVXKernel::score_alignment_needleman_wunsch(char const * const * const read
 	// Initialize SSE matrix
 	short * matrix = 0;
 
-	malloc32(matrix, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE,32);
+	malloc32(matrix, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE);
 	memset(matrix, 0, sizeof(short) * (refLength + 1) * SCORING_ROWS * AVX_SIZE);
 
 	// offset for first and second row

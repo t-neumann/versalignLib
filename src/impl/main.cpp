@@ -14,7 +14,9 @@
 #include "util/versalignUtil.h"
 #include "Kernels/OpenCL/ocl_testing.h"
 #include "Timer/Timer.h"
+#include "AVXSupportChecker.h"
 #include <iostream>
+#include <fstream>
 
 #define READ_PAD '\0'
 #define REF_PAD '\0'
@@ -24,6 +26,11 @@ using std::string;
 using std::endl;
 
 CustomParameters parameters;
+
+inline bool lib_exists (const std::string& name) {
+    std::ifstream f(name.c_str());
+    return f.good();
+}
 
 int main(int argc, char *argv[]) {
 
@@ -149,24 +156,33 @@ int main(int argc, char *argv[]) {
 	parameters.read_length = max_read_length;
 	parameters.ref_length = max_ref_length;
 
-	//char const * libPath = "../bin/libDefaultKernel.so";
-	char const * libPath = "../bin/libSSEKernel.so";
-	//char const * libPath = "../bin/libAVXKernel.so";
+	#ifdef __APPLE__
+		const string libSuffix ("dylib");
+	#else
+		const string libSuffix ("so");
+	#endif
 
-	int const dll = DLL_init(libPath, &parameters);
 
-	std::cout << "LIB loaded!\n";
-	char a;
-	std::cin >> a;
+	string libPath ("../bin/libDefaultKernel.so");
+
+	if (check_avx2_support() && lib_exists(libPath)) {
+		std::cout << "AVX2 boost detected.\n";
+		libPath = "../bin/libAVXKernel." + libSuffix;
+	} else {
+		std::cout << "SSE4 mode activated.\n";
+		libPath = "../bin/libSSEKernel." + libSuffix;
+	}
+
+	int dll = DLL_init(libPath.c_str(), &parameters);
 
 	fp_load_alignment_kernel load_alignment_kernel = (fp_load_alignment_kernel) DLL_function_retreival(dll, "spawn_alignment_kernel");
 	fp_delete_alignment_kernel delete_alignment_kernel = (fp_delete_alignment_kernel) DLL_function_retreival(dll, "delete_alignment_kernel");
-	std::cout << "PF loaded!\n";
-	std::cin >> a;
 
 	AlignmentKernel * plain_kernel = 0;
 
-	//plain_kernel = load_alignment_kernel();
+	plain_kernel = load_alignment_kernel();
+
+	std::cout << "Alignment kernel instantiated.\n";
 
 	short * scores = new short[seqNumber]();
 	Alignment * alignments = new Alignment[seqNumber]();
@@ -178,13 +194,25 @@ int main(int argc, char *argv[]) {
 
 	//SSEKernel * kernel = new SSEKernel();
 
-	AVXKernel * kernel = new AVXKernel();
+	//AVXKernel * kernel = new AVXKernel();
 
-	std::cout << "AVX Kernel loaded!\n";
-	std::cin >> a;
+//	dll = DLL_init("../bin/libAVXKernel.dylib", &parameters);
+//
+//	std::cout << "AVX LIB loaded!\n";
+//	std::cin >> a;
+//
+//	load_alignment_kernel = (fp_load_alignment_kernel) DLL_function_retreival(dll, "spawn_alignment_kernel");
+//	delete_alignment_kernel = (fp_delete_alignment_kernel) DLL_function_retreival(dll, "delete_alignment_kernel");
+//	std::cout << "PF loaded!\n";
+//	std::cin >> a;
 
-	kernel->score_alignments(1,seqNumber,reads,refs,scores);
-	kernel->compute_alignments(1,seqNumber,reads,refs,alignments);
+//	plain_kernel = load_alignment_kernel();
+
+	plain_kernel->compute_alignments(0, seqNumber, reads, refs, alignments);
+	plain_kernel->score_alignments(0, seqNumber, reads,refs, scores);
+
+	//kernel->score_alignments(1,seqNumber,reads,refs,scores);
+	//kernel->compute_alignments(1,seqNumber,reads,refs,alignments);
 
 		for (int i = 0; i < seqNumber; ++i) {
 			std::cout << "Read: " << reads[i] << std::endl;

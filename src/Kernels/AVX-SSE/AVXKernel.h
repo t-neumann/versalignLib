@@ -13,10 +13,10 @@
 
 #if _WIN32
 #define align32 __declspec(align(32))
-#define malloc32(ptr,size,align)  ptr = (short*) _aligned_malloc(size, align)
+#define malloc32(ptr,size)  ptr = (short*) _aligned_malloc(size, 32)
 #else
 #include <stdlib.h>
-#define malloc32(ptr,size,align)  posix_memalign(((void * *)&ptr), align, size)
+#define malloc32(ptr,size)  posix_memalign(((void * *)&ptr), 32, size)
 #define align32 __attribute__((aligned(32)))
 #endif
 
@@ -56,18 +56,11 @@ public:
 						<< "\nRef_length: " << refLength
 						<< "\nAln_length: " << alnLength << std::endl;
 
-		char a;
-		std::cin >> a;
-
 		if (exception) {
 			throw "Cannot instantiate Kernel. Lacking parameters";
 		}
 
-		std::cout << "SHORT TO AVX start:!\n";
-		std::cin >> a;
 		x_scoreMatch = short_to_avx(scoreMatch);
-		std::cout << "SHORT TO AVX end:!\n";
-		std::cin >> a;
 		x_scoreMismatch = short_to_avx(scoreMismatch);
 		x_scoreGapRead = short_to_avx(scoreGapRead);
 		x_scoreGapRef = short_to_avx(scoreGapRef);
@@ -123,11 +116,15 @@ private:
 	// __m256i fits 256 bits = 16 shorts
 	inline __m256i short_to_avx(short x) {
 
-		align32 short buf[AVX_SIZE];
-		for (int i = 0; i < AVX_SIZE; ++i)
+		short buf[AVX_SIZE] align32;
+		for (int i = 0; i < AVX_SIZE; ++i) {
 			buf[i] = x;
+//			std::cout << "Saving " << x << "\n";
+//					std::cin >> a;
+		}
 
-		return _mm256_load_si256((__m256i *) buf);
+		__m256i ret = _mm256_load_si256((__m256i *) buf);
+		return ret;
 	}
 
 	inline __m256i _mm_blendv_si256 (__m256i x, __m256i y, __m256i mask) {
@@ -139,10 +136,10 @@ private:
 	int refLength;
 	int alnLength;
 
-	short scoreMatch;
-	short scoreMismatch;
-	short scoreGapRead;
-	short scoreGapRef;
+	align32 short scoreMatch;
+	align32 short scoreMismatch;
+	align32 short scoreGapRead;
+	align32 short scoreGapRef;
 
 	__m256i x_scoreMatch;
 	__m256i x_scoreMismatch;

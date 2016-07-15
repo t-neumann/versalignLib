@@ -9,7 +9,6 @@
 #include <memory.h>
 #include <iostream>
 #include <cstdio>
-#include <iostream>
 
 // Change to only include in debug mode
 #include <sstream>
