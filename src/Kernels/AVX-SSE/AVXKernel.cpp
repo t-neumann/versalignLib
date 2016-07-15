@@ -61,8 +61,9 @@ void AVXKernel::compute_alignments(int const & opt, int const & aln_number, char
 		//				<< "# alignments:\t" << aln_number
 		//				<< "\n# batches:\t" << num_batches
 		//				<< "\n# overflow:\t" << mod << std::endl;
-
+		#ifndef __linux__
 		#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
+		#endif
 		for (int i = num_batches; i > 0; --i) {
 			(this->*alignment_call)(reads + cur_alignment,refs + cur_alignment,alignments + cur_alignment);
 //			for (int i = cur_alignment; i < cur_alignment + AVX_SIZE; ++i) {
@@ -168,7 +169,9 @@ void AVXKernel::score_alignments(int const & opt, int const & aln_number, char c
 //						<< "\n# batches:\t" << num_batches
 //						<< "\n# overflow:\t" << mod << std::endl;
 
+		#ifndef __linux__
 		#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
+		#endif
 		for (int i = num_batches; i > 0; --i) {
 			(this->*scoring_call)(reads + cur_alignment,refs + cur_alignment,scores32 + cur_alignment);
 //			for (int i = cur_alignment; i < cur_alignment + AVX_SIZE; ++i) {

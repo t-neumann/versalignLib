@@ -347,13 +347,8 @@ int main(int argc, char *argv[]) {
 
 	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
 
-
-	delete_alignment_kernel(plain_kernel);
-
 	parameters.num_threads = 4;
 	set_parameters(&parameters);
-
-	plain_kernel = load_alignment_kernel();
 
 	std::cout << "Alignment kernel instantiated.\n";
 	std::cout << "Running with " << parameters.num_threads <<" threads.\n";
@@ -371,16 +366,11 @@ int main(int argc, char *argv[]) {
 	timer.stop();
 	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
 
-	delete_alignment_kernel(plain_kernel);
-
 	parameters.num_threads = 8;
 	set_parameters(&parameters);
 
-	plain_kernel = load_alignment_kernel();
-
 	std::cout << "Alignment kernel instantiated.\n";
 	std::cout << "Running with " << parameters.num_threads <<" threads.\n";
-
 
 	timer.start();
 
@@ -404,6 +394,8 @@ int main(int argc, char *argv[]) {
 //		std::cout << "\"" << std::endl << "==================" << std::endl;
 //		std::cout << "Score: " << scores[i] << std::endl << std::endl;
 //	}
+
+	delete_alignment_kernel(plain_kernel);
 
 	return 0;
 
