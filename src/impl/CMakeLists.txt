@@ -13,5 +13,5 @@ target_link_libraries (Versalign openCLKernel)
 message(STATUS "Linking Utils")
 target_link_libraries (Versalign Timer)
 target_link_libraries (Versalign Utils)
-
+target_link_libraries (Versalign "-ldl")
 target_link_libraries(Versalign ${OPENCL_LIBRARY})
