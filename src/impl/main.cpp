@@ -15,6 +15,7 @@
 #include "Kernels/OpenCL/ocl_testing.h"
 #include "Timer/Timer.h"
 #include "AVXSupportChecker.h"
+#include "FastaProvider.h"
 #include <iostream>
 #include <fstream>
 
@@ -34,256 +35,206 @@ inline bool lib_exists (const std::string& name) {
 
 int main(int argc, char *argv[]) {
 
-	/*char const
-	 * reads[] =
-						{
-								"CACACCCACACACCACACCACACACCAGACCCACACCCACACACACACATCCTAAGACTGCCCTAAAACAGCCCTAATCTAACCCTGGCCAACCTGTCTCT",
-								"CACACCCACACACCACACCACACACCAGACCCACACCCACACACACACATCCTAAGACTGCCCTAAAACAGCCCTAATCTAACCCTGGCCAACCTGTCTCT",
-								"CACACCCACACACCACACCACACACCAGACCCACACCCACACACACACATCCTAAGACTGCCCTAAAACAGCCCTAATCTAACCCTGGCCAACCTGTCTCT",
-								"CACACCCACACACCACACCACACACCAGACCCACACCCACACACACACATCCTAAGACTGCCCTAAAACAGCCCTAATCTAACCCTGGCCAACCTGTCTCT",
-								"CACACCCACACACCACACCACACACCAGACCCACACCCACACACACACATCCTAAGACTGCCCTAAAACAGCCCTAATCTAACCCTGGCCAACCTGTCTCT",
-								"GGGTAAGTTGAGAGACAGGTTGGACAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGTG",
-								"GGGTAAGTTGAGAGACAGGTTGGACAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGTG",
-								"GGGTAAGTTGAGAGACAGGTTGGACAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGTG" };
-		char const
-	 * refs[] =
-						{
-								"GTTGGGTGACACACCCACACACCACACCACACACCAGACCCACACCCACAAACACACATCCTAAGACTGCCCTAAAACTGCCCTAATCTAACCCTGGCCAACCTGTCTCTGTGGTCA",
-								"TCAACTTCCCACACACCACACCACACACCAGACCCACACCCACACACACACATCCTAAGACTGCCCTAAAACAGCCCTAATCTAACCCTGGCCAACCTGTCTCTCCCTCCAT",
-								"AGGGTAACGCACACCCACACACCACACCACACACCAGACCCACACCCACACACACACATCCTAAGACTGCCCTAAAACAGCCCTAATCTAACCCTGGCCAACCTGTCTCTTTGGGTG",
-								"TTGGAGGGCACACCCACACACCACACCACACACCAGACCCACACCCACACACAAAACACATCCTAAGACTGCCCTAAAACAGCCCTAATCTAACCCTGGCCAACCTGTCTCTTAACTTTG",
-								"CCCTCCATTACACACCCACACACCACACCACACACCAGACCCACACCCAAGGACACACATCCTAAGACTGCCCTAAAACAGCCCTAATCTAACCCTGGCCAACCTGTCTCTCCCTGC",
-								"TAATTGGAGGGTAAGTTGAGAGACAGGTTGGACAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGGTAACG",
-								"TCCATTAAAGTTGAGAGACAGGTTGGACAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGTGCCCTGCCTG",
-								"TATTACCCTGGGGTAAGTTGAGAGACAGGTTGGACAGGGTTAGATTAGGGCTGTGTTAGGGTAGTGTTAGGATGTGTGTGTGTGGGTGTGGTGTGGTGTGTGGTGTGGTGCCTCCA" };*/
 
-//	char const
-//	* refs[] =
-//	{
-//			"TTAATTTT",
-//			"AAAAAAAA",
-//			"AAAAAAAA",
-//			"AAAAAAAA",
-//			"AAAAAAAA",
-//			"AAAAAAAA",
-//			"AAAAAAAA",
-//			"ATATTATA" };
-//	char const
-//	* reads[] =
-//	{
-//			"aa",
-//			"AAAAAAAA",
-//			"AATTTTAA",
-//			"AAAATAAA",
-//			"TTTTAAAA",
-//			"AAAATTTT",
-//			"ATATATAT",
-//			"ATATATAT" };
+	//	char const
+	//	* reads[] =
+	//	{
+	//			"AGGGGGGA",
+	//			"AATTTTGCC",
+	//			"TTTTTAA",
+	//			"ATAGATAGATAG",
+	//			"AGCAGTAC",
+	//			"AGAGAGAG",
+	//			"",
+	//			"ATATATAT",
+	//			"AGG",
+	//			"TAA",
+	//			"AGAG",
+	//			"AGCAGTAG",
+	//			"TATAC",
+	//			"AGGAAGAG",
+	//			"TT",
+	//			"CCCCC",
+	//			"AGGGGGGA",
+	//			"AGGGGGGA",
+	//			"AATTTTGCC",
+	//			"TTTTTAA",
+	//			"ATAGATAGATAG",
+	//			"AGCAGTAC",
+	//			"AGAGAGAG",
+	//			"",
+	//			"ATATATAT",
+	//			"AGG",
+	//			"TAA",
+	//			"AGAG",
+	//			"AGCAGTAG",
+	//			"TATAC",
+	//			"AGGAAGAG",
+	//			"TT",
+	//			"CCCCC",
+	//			"AGGGGGGA",
+	//			"AGGGGGGA",
+	//			"AATTTTGCC",
+	//			"TTTTTAA",
+	//			"ATAGATAGATAG",
+	//			"AGCAGTAC",
+	//			"AGAGAGAG",
+	//			"",
+	//			"ATATATAT",
+	//			"AGG",
+	//			"TAA",
+	//			"AGAG",
+	//			"AGCAGTAG",
+	//			"TATAC",
+	//			"AGGAAGAG",
+	//			"TT",
+	//			"CCCCC",
+	//			"AGGGGGGA",
+	//			"AGGGGGGA",
+	//			"AATTTTGCC",
+	//			"TTTTTAA",
+	//			"ATAGATAGATAG",
+	//			"AGCAGTAC",
+	//			"AGAGAGAG",
+	//			"",
+	//			"ATATATAT",
+	//			"AGG",
+	//			"TAA",
+	//			"AGAG",
+	//			"AGCAGTAG",
+	//			"TATAC",
+	//			"AGGAAGAG",
+	//			"TT",
+	//			"CCCCC",
+	//			"AGGGGGGA",
+	//			"AGGGGGGA",
+	//			"AATTTTGCC",
+	//			"TTTTTAA",
+	//			"ATAGATAGATAG",
+	//			"AGCAGTAC",
+	//			"AGAGAGAG",
+	//			"",
+	//			"ATATATAT",
+	//			"AGG",
+	//			"TAA",
+	//			"AGAG",
+	//			"AGCAGTAG",
+	//			"TATAC",
+	//			"AGGAAGAG",
+	//			"TT",
+	//			"CCCCC",
+	//			"AGGGGGGA"
+	//	};
+	//
+	//	char const
+	//	* refs[] =
+	//	{
+	//			"AGCAGATGAGGGCGGATAGC",
+	//			"TTTTGCCAACGCATGGCAGA",
+	//			"ATGACGACGCAGTGCTTTTT",
+	//			"GCAATAGAATAGATAGTGGT",
+	//			"TAGCATCAAGCAGTACTACA",
+	//			"TCTCTCTCTCTCTCTCTCTC",
+	//			"AGCAGATGACATGCATGCAA",
+	//			"",
+	//			"AGCAGATGAGGGCGGATAGC",
+	//			"TTTTGCCAACGCATGGCAGA",
+	//			"ATGACGACGCAGTGCTTTTT",
+	//			"GCAATAGAATAGATAGTGGT",
+	//			"TAGCATCAAGCAGTACTACA",
+	//			"TCTCTCTCTCTCTCTCTCTC",
+	//			"AGCAGATGACATGCATGCAA",
+	//			"",
+	//			"AGCAGATGAGGGCGGATAGC",
+	//			"AGCAGATGAGGGCGGATAGC",
+	//			"TTTTGCCAACGCATGGCAGA",
+	//			"ATGACGACGCAGTGCTTTTT",
+	//			"GCAATAGAATAGATAGTGGT",
+	//			"TAGCATCAAGCAGTACTACA",
+	//			"TCTCTCTCTCTCTCTCTCTC",
+	//			"AGCAGATGACATGCATGCAA",
+	//			"",
+	//			"AGCAGATGAGGGCGGATAGC",
+	//			"TTTTGCCAACGCATGGCAGA",
+	//			"ATGACGACGCAGTGCTTTTT",
+	//			"GCAATAGAATAGATAGTGGT",
+	//			"TAGCATCAAGCAGTACTACA",
+	//			"TCTCTCTCTCTCTCTCTCTC",
+	//			"AGCAGATGACATGCATGCAA",
+	//			"",
+	//			"AGCAGATGAGGGCGGATAGC",
+	//			"AGCAGATGAGGGCGGATAGC",
+	//			"TTTTGCCAACGCATGGCAGA",
+	//			"ATGACGACGCAGTGCTTTTT",
+	//			"GCAATAGAATAGATAGTGGT",
+	//			"TAGCATCAAGCAGTACTACA",
+	//			"TCTCTCTCTCTCTCTCTCTC",
+	//			"AGCAGATGACATGCATGCAA",
+	//			"",
+	//			"AGCAGATGAGGGCGGATAGC",
+	//			"TTTTGCCAACGCATGGCAGA",
+	//			"ATGACGACGCAGTGCTTTTT",
+	//			"GCAATAGAATAGATAGTGGT",
+	//			"TAGCATCAAGCAGTACTACA",
+	//			"TCTCTCTCTCTCTCTCTCTC",
+	//			"AGCAGATGACATGCATGCAA",
+	//			"",
+	//			"AGCAGATGAGGGCGGATAGC",
+	//			"AGCAGATGAGGGCGGATAGC",
+	//			"TTTTGCCAACGCATGGCAGA",
+	//			"ATGACGACGCAGTGCTTTTT",
+	//			"GCAATAGAATAGATAGTGGT",
+	//			"TAGCATCAAGCAGTACTACA",
+	//			"TCTCTCTCTCTCTCTCTCTC",
+	//			"AGCAGATGACATGCATGCAA",
+	//			"",
+	//			"AGCAGATGAGGGCGGATAGC",
+	//			"TTTTGCCAACGCATGGCAGA",
+	//			"ATGACGACGCAGTGCTTTTT",
+	//			"GCAATAGAATAGATAGTGGT",
+	//			"TAGCATCAAGCAGTACTACA",
+	//			"TCTCTCTCTCTCTCTCTCTC",
+	//			"AGCAGATGACATGCATGCAA",
+	//			"",
+	//			"AGCAGATGAGGGCGGATAGC",
+	//			"AGCAGATGAGGGCGGATAGC",
+	//			"TTTTGCCAACGCATGGCAGA",
+	//			"ATGACGACGCAGTGCTTTTT",
+	//			"GCAATAGAATAGATAGTGGT",
+	//			"TAGCATCAAGCAGTACTACA",
+	//			"TCTCTCTCTCTCTCTCTCTC",
+	//			"AGCAGATGACATGCATGCAA",
+	//			"",
+	//			"AGCAGATGAGGGCGGATAGC",
+	//			"TTTTGCCAACGCATGGCAGA",
+	//			"ATGACGACGCAGTGCTTTTT",
+	//			"GCAATAGAATAGATAGTGGT",
+	//			"TAGCATCAAGCAGTACTACA",
+	//			"TCTCTCTCTCTCTCTCTCTC",
+	//			"AGCAGATGACATGCATGCAA",
+	//			"",
+	//			"AGCAGATGAGGGCGGATAGC"
+	//	};
 
-//	char const
-//	* refs[] =
-//	{
-//			"TTTAA",
-//			"TTTGGCCTT",
-//			"GGGGGTTTT",
-//			"AACCCCCCAA",
-//			"ATGC",
-//			"AAAAAAAA",
-//			"AAAAAAAA",
-//			"ATATTATA" };
-//	char const
-//	* reads[] =
-//	{
-//			"aa",
-//			"GGCC",
-//			"TTTTAAA",
-//			"AACCGGCCAA",
-//			"ATGC",
-//			"AAAATTTT",
-//			"ATATATAT",
-//			"ATATATAT" };
+	//	int seqNumber = 17;
 
-	char const
-	* reads[] =
-	{
-			"AGGGGGGA",
-			"AATTTTGCC",
-			"TTTTTAA",
-			"ATAGATAGATAG",
-			"AGCAGTAC",
-			"AGAGAGAG",
-			"",
-			"ATATATAT",
-			"AGG",
-			"TAA",
-			"AGAG",
-			"AGCAGTAG",
-			"TATAC",
-			"AGGAAGAG",
-			"TT",
-			"CCCCC",
-			"AGGGGGGA",
-			"AGGGGGGA",
-			"AATTTTGCC",
-			"TTTTTAA",
-			"ATAGATAGATAG",
-			"AGCAGTAC",
-			"AGAGAGAG",
-			"",
-			"ATATATAT",
-			"AGG",
-			"TAA",
-			"AGAG",
-			"AGCAGTAG",
-			"TATAC",
-			"AGGAAGAG",
-			"TT",
-			"CCCCC",
-			"AGGGGGGA",
-			"AGGGGGGA",
-			"AATTTTGCC",
-			"TTTTTAA",
-			"ATAGATAGATAG",
-			"AGCAGTAC",
-			"AGAGAGAG",
-			"",
-			"ATATATAT",
-			"AGG",
-			"TAA",
-			"AGAG",
-			"AGCAGTAG",
-			"TATAC",
-			"AGGAAGAG",
-			"TT",
-			"CCCCC",
-			"AGGGGGGA",
-			"AGGGGGGA",
-			"AATTTTGCC",
-			"TTTTTAA",
-			"ATAGATAGATAG",
-			"AGCAGTAC",
-			"AGAGAGAG",
-			"",
-			"ATATATAT",
-			"AGG",
-			"TAA",
-			"AGAG",
-			"AGCAGTAG",
-			"TATAC",
-			"AGGAAGAG",
-			"TT",
-			"CCCCC",
-			"AGGGGGGA",
-			"AGGGGGGA",
-			"AATTTTGCC",
-			"TTTTTAA",
-			"ATAGATAGATAG",
-			"AGCAGTAC",
-			"AGAGAGAG",
-			"",
-			"ATATATAT",
-			"AGG",
-			"TAA",
-			"AGAG",
-			"AGCAGTAG",
-			"TATAC",
-			"AGGAAGAG",
-			"TT",
-			"CCCCC",
-			"AGGGGGGA"
-	};
+	int const N = 100;
 
-	char const
-	* refs[] =
-	{
-			"AGCAGATGAGGGCGGATAGC",
-			"TTTTGCCAACGCATGGCAGA",
-			"ATGACGACGCAGTGCTTTTT",
-			"GCAATAGAATAGATAGTGGT",
-			"TAGCATCAAGCAGTACTACA",
-			"TCTCTCTCTCTCTCTCTCTC",
-			"AGCAGATGACATGCATGCAA",
-			"",
-			"AGCAGATGAGGGCGGATAGC",
-			"TTTTGCCAACGCATGGCAGA",
-			"ATGACGACGCAGTGCTTTTT",
-			"GCAATAGAATAGATAGTGGT",
-			"TAGCATCAAGCAGTACTACA",
-			"TCTCTCTCTCTCTCTCTCTC",
-			"AGCAGATGACATGCATGCAA",
-			"",
-			"AGCAGATGAGGGCGGATAGC",
-			"AGCAGATGAGGGCGGATAGC",
-			"TTTTGCCAACGCATGGCAGA",
-			"ATGACGACGCAGTGCTTTTT",
-			"GCAATAGAATAGATAGTGGT",
-			"TAGCATCAAGCAGTACTACA",
-			"TCTCTCTCTCTCTCTCTCTC",
-			"AGCAGATGACATGCATGCAA",
-			"",
-			"AGCAGATGAGGGCGGATAGC",
-			"TTTTGCCAACGCATGGCAGA",
-			"ATGACGACGCAGTGCTTTTT",
-			"GCAATAGAATAGATAGTGGT",
-			"TAGCATCAAGCAGTACTACA",
-			"TCTCTCTCTCTCTCTCTCTC",
-			"AGCAGATGACATGCATGCAA",
-			"",
-			"AGCAGATGAGGGCGGATAGC",
-			"AGCAGATGAGGGCGGATAGC",
-			"TTTTGCCAACGCATGGCAGA",
-			"ATGACGACGCAGTGCTTTTT",
-			"GCAATAGAATAGATAGTGGT",
-			"TAGCATCAAGCAGTACTACA",
-			"TCTCTCTCTCTCTCTCTCTC",
-			"AGCAGATGACATGCATGCAA",
-			"",
-			"AGCAGATGAGGGCGGATAGC",
-			"TTTTGCCAACGCATGGCAGA",
-			"ATGACGACGCAGTGCTTTTT",
-			"GCAATAGAATAGATAGTGGT",
-			"TAGCATCAAGCAGTACTACA",
-			"TCTCTCTCTCTCTCTCTCTC",
-			"AGCAGATGACATGCATGCAA",
-			"",
-			"AGCAGATGAGGGCGGATAGC",
-			"AGCAGATGAGGGCGGATAGC",
-			"TTTTGCCAACGCATGGCAGA",
-			"ATGACGACGCAGTGCTTTTT",
-			"GCAATAGAATAGATAGTGGT",
-			"TAGCATCAAGCAGTACTACA",
-			"TCTCTCTCTCTCTCTCTCTC",
-			"AGCAGATGACATGCATGCAA",
-			"",
-			"AGCAGATGAGGGCGGATAGC",
-			"TTTTGCCAACGCATGGCAGA",
-			"ATGACGACGCAGTGCTTTTT",
-			"GCAATAGAATAGATAGTGGT",
-			"TAGCATCAAGCAGTACTACA",
-			"TCTCTCTCTCTCTCTCTCTC",
-			"AGCAGATGACATGCATGCAA",
-			"",
-			"AGCAGATGAGGGCGGATAGC",
-			"AGCAGATGAGGGCGGATAGC",
-			"TTTTGCCAACGCATGGCAGA",
-			"ATGACGACGCAGTGCTTTTT",
-			"GCAATAGAATAGATAGTGGT",
-			"TAGCATCAAGCAGTACTACA",
-			"TCTCTCTCTCTCTCTCTCTC",
-			"AGCAGATGACATGCATGCAA",
-			"",
-			"AGCAGATGAGGGCGGATAGC",
-			"TTTTGCCAACGCATGGCAGA",
-			"ATGACGACGCAGTGCTTTTT",
-			"GCAATAGAATAGATAGTGGT",
-			"TAGCATCAAGCAGTACTACA",
-			"TCTCTCTCTCTCTCTCTCTC",
-			"AGCAGATGACATGCATGCAA",
-			"",
-			"AGCAGATGAGGGCGGATAGC"
-	};
+	FastaProvider read_provider;
+	std::vector<const char *> readsVec = read_provider.parse_fasta("../testset/reads.fa");
+//	for (std::vector<const char *>::iterator i = readsVec.begin(); i != readsVec.end(); ++i) {
+//		std::cout << (*i) << std::endl;
+//	}
+	char const * * const reads = &readsVec[0];
+	std::vector<const char *> refsVec = read_provider.parse_fasta("../testset/refs.fa");
+	char const * * const refs = &refsVec[0];
 
-	int seqNumber = 17;
+	if (readsVec.size() != refsVec.size()) {
+		std::cerr << "Unequal sizes of reads and ref set (" << readsVec.size() << " vs " << refsVec.size() << ").\n";
+		return -1;
+	}
+
+	int seqNumber = readsVec.size();
 
 	size_t max_read_length = pad(reads, seqNumber, READ_PAD);
 
@@ -336,7 +287,7 @@ int main(int argc, char *argv[]) {
 
 	timer.start();
 
-	for (int rep = 0; rep < 10000; ++rep) {
+	for (int rep = 0; rep < N; ++rep) {
 
 		//plain_kernel->compute_alignments(0, seqNumber, reads, refs, alignments);
 		plain_kernel->score_alignments(0, seqNumber, reads,refs, scores);
@@ -345,7 +296,7 @@ int main(int argc, char *argv[]) {
 
 	timer.stop();
 
-	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
+	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / N << " ms" << endl;
 
 	parameters.num_threads = 4;
 	set_parameters(&parameters);
@@ -356,7 +307,7 @@ int main(int argc, char *argv[]) {
 
 	timer.start();
 
-	for (int rep = 0; rep < 10000; ++rep) {
+	for (int rep = 0; rep < N; ++rep) {
 
 		//plain_kernel->compute_alignments(0, seqNumber, reads, refs, alignments);
 		plain_kernel->score_alignments(0, seqNumber, reads,refs, scores);
@@ -364,7 +315,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	timer.stop();
-	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
+	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / N << " ms" << endl;
 
 	parameters.num_threads = 8;
 	set_parameters(&parameters);
@@ -374,7 +325,7 @@ int main(int argc, char *argv[]) {
 
 	timer.start();
 
-	for (int rep = 0; rep < 10000; ++rep) {
+	for (int rep = 0; rep < N; ++rep) {
 
 		//plain_kernel->compute_alignments(0, seqNumber, reads, refs, alignments);
 		plain_kernel->score_alignments(0, seqNumber, reads,refs, scores);
@@ -382,7 +333,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	timer.stop();
-	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
+	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / N << " ms" << endl;
 
 //	for (int i = 0; i < seqNumber; ++i) {
 //		std::cout << "Read: " << reads[i] << std::endl;
@@ -396,182 +347,6 @@ int main(int argc, char *argv[]) {
 //	}
 
 	delete_alignment_kernel(plain_kernel);
-
-	return 0;
-
-//	run_ocl_test(reads, refs, seqNumber, max_read_length, max_ref_length);
-
-//	return 0;
-
-//	AVXKernel * avxkernel = new AVXKernel();
-//
-//	short * avxscores = new short[seqNumber];
-//
-//	avxkernel->init(max_read_length, max_ref_length);
-//
-//	Alignment * avx_alignment = new Alignment[seqNumber];
-////	avxkernel->score_alignment_needleman_wunsch(reads, refs, avxscores);
-////
-////	for (int j = 0; j < seqNumber; ++j) {
-////		cout << "Read:\t" << reads[j] << std::endl <<
-////				"Ref:\t" << refs[j] << std::endl <<
-////				"Score:\t" << avxscores[j] << std::endl;
-////	}
-////	std::cout << std::endl << "AVX end" << std::endl;
-//
-//	avxkernel->calc_alignment_needleman_wunsch(reads, refs, avx_alignment);
-//
-//	for (int j = 0; j < seqNumber; ++j) {
-//		std::cout << "==================" << std::endl << "\"";
-//		std::cout << avx_alignment[j].read + avx_alignment[j].readStart;
-//		std::cout << "\"" << std::endl << "\"";
-//		std::cout << avx_alignment[j].ref + avx_alignment[j].refStart;
-//		std::cout << "\"" << std::endl << "==================" << std::endl;
-//	}
-//
-//	delete avxkernel;
-
-//	SSEKernel * ssekernel = new SSEKernel();
-//
-//	short * scores = new short[seqNumber];
-//
-//	ssekernel->init(max_read_length, max_ref_length);
-//
-//	Timer timer;
-//
-//	timer.start();
-//
-//	Alignment * alignments = 0;
-//
-//	for (int i = 0; i < 2; ++i) {
-//
-//		char * * reads_batch = new char * [8];
-//		for (int j = 0; j < 8; ++j) {
-//			reads_batch[j] = new char [max_read_length];
-//			memcpy(reads_batch[j],reads[i * 8 + j], max_read_length * sizeof(char));
-//			//reads_batch[j] = reads[i * 8 + j];
-//		}
-//		char * * refs_batch = new char * [8];
-//		for (int j = 0; j < 8; ++j) {
-//			refs_batch[j] = new char [max_ref_length];
-//			memcpy(refs_batch[j],refs[i * 8 + j], max_ref_length * sizeof(char));
-//			//refs_batch[j] = refs[i * 8 + j];
-//		}
-//
-//		//ssekernel->score_alignment_needleman_wunsch(reads, refs, scores);
-//		ssekernel->score_alignment_needleman_wunsch(reads_batch, refs_batch, scores);
-//		for (int j = 0; j < 8; ++j) {
-//			cout << "Read:\t" << reads_batch[j] << std::endl <<
-//					"Ref:\t" << refs_batch[j] << std::endl <<
-//					"Score:\t" << scores[j] << std::endl;
-//		}
-////		std::cout << std::endl << "Batch end" << std::endl;
-////		alignments = new Alignment[8];
-////		ssekernel->calc_alignment_needleman_wunsch(reads_batch, refs_batch, alignments);
-//		//ssekernel->calc_alignment_needleman_wunsch(reads, refs, alignments);
-////		ssekernel->calc_alignment_needleman_wunsch(reads_batch, refs_batch, alignments);
-//
-////		for (int j = 0; j < 8; ++j) {
-////			std::cout << "==================" << std::endl << "\"";
-////			std::cout << alignments[j].read + alignments[j].readStart;
-////			std::cout << "\"" << std::endl << "\"";
-////			std::cout << alignments[j].ref + alignments[j].refStart;
-////			std::cout << "\"" << std::endl << "==================" << std::endl;
-////		}
-////
-//	}
-//
-//	timer.stop();
-//
-//	cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
-//
-//	return 0;
-
-	// Premature return for SSE testing
-
-//	for (int i = 0; i < seqNumber; ++i) {
-//		cout << reads[i] << ":\t" << scores[i] << endl;
-//	}
-
-//	delete ssekernel; ssekernel = 0;
-//	delete scores; scores = 0;
-
-//	SWKernel * kernel = new SWKernel();
-	//kernel->init(max_read_length, max_ref_length);
-
-//	for (int i = 0; i < seqNumber; ++i) {
-//
-//		short * const score = (short * const)malloc(sizeof(short));
-//		memset(score, 0, sizeof(short));
-//
-//		char const * const * const read = reads + i;
-//		char const * const * const ref = refs + i;
-//
-//		timer.start();
-//
-//		for (int j = 0; j < 1; ++j) {
-//
-//			//for (int k = 0; k < 8; ++k) {
-//
-//				//kernel->score_alignment(read, ref, score);
-//				kernel->score_alignment_needleman_wunsch(read, ref, score);
-//			//}
-//
-//		}
-//
-//		cout << *(read) << std::endl << *(ref) << std::endl << "Score:\t" << *score << endl;
-//		free(score);
-//
-//		timer.stop();
-//
-//		cout << "Alignment took " << timer.getElapsedTimeInMicroSec() / 10000 << " ms" << endl;
-//	}
-
-//	alignments = new Alignment[seqNumber];
-//
-//	for (int i = 0; i < seqNumber; ++i) {
-//		char const * const * const read = reads + i;
-//		char const * const * const ref = refs + i;
-//
-//		std::cout << "Read: " << *read << std::endl;
-//		std::cout << "Ref: " << *ref << std::endl;
-//
-//		timer.start();
-//
-//		kernel->calc_alignment_needleman_wunsch(read, ref, &alignments[i]);
-//
-//		timer.stop();
-//
-//		cout << "Alignment took " << timer.getElapsedTimeInMicroSec() << " ms" << endl;
-//
-//		std::cout << "==================" << std::endl << "\"";
-//		std::cout << alignments[i].read + alignments[i].readStart;
-//		std::cout << "\"" << std::endl << "\"";
-//		std::cout << alignments[i].ref + alignments[i].refStart;
-//		std::cout << "\"" << std::endl << "==================" << std::endl;
-//
-//	}
-
-//	delete kernel; kernel = 0;
-
-	cout << "Sizeof char * " << sizeof(char *) << endl;
-	cout << "Sizeof int * " << sizeof(int *) << endl;
-	cout << "Sizeof float " << sizeof(float) << endl;
-	cout << "Sizeof int " << sizeof(int) << endl;
-	cout << "Sizeof short " << sizeof(short) << endl;
-
-	char F = 78;
-	char n = 110;
-
-	char mask = 223;
-
-	char masked = n & mask;
-
-	cout << F << " " << n << " " << mask << " " << masked;
-	// N 01001110 -> 78
-	// n 01101110 -> 110
-
-	// Mask 11011111 -> 223
 
 	return 0;
 }
