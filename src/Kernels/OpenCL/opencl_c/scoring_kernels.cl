@@ -1,8 +1,10 @@
-__kernel void score_alignment_smith_waterman(__global const char* read, __global const char* ref, __global short * results) {
+__kernel void score_alignment_smith_waterman(__global const char* read, __global const char * ref, __global short * results) {
 
-	// Offset read and ref pointers
+	// Offset pointers
 	read = read + g_id * read_length * VSIZE;
 	ref = ref + g_id * ref_length * VSIZE;
+
+	results = results + g_id * VSIZE;
 
 	short16 max_score = v_null;
 
@@ -95,9 +97,11 @@ __kernel void score_alignment_smith_waterman(__global const char* read, __global
 
 __kernel void score_alignment_needleman_wunsch(__global const char* read, __global const char* ref, __global short * results) {
 
-	// Offset read and ref pointers
+	// Offset pointers
 	read = read + g_id * read_length * VSIZE;
 	ref = ref + g_id * ref_length * VSIZE;
+
+	results = results + g_id * VSIZE;
 
 	short16 max_score = (short16)(SHORT_MIN);
 

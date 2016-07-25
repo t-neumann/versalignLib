@@ -1,9 +1,15 @@
+__kernel void calc_alignment_smith_waterman(__global const char* read, __global const char* ref, __global char * alignment, __global short * alignment_index, __global short * _matrix) {
 
-__kernel void calc_alignment_smith_waterman(__global const char* read, __global const char* ref, __global char * alignment, __global short * alignment_index) {
-
-	// Offset read and ref pointers
+	// Offset pointers
 	read = read + g_id * read_length * VSIZE;
 	ref = ref + g_id * ref_length * VSIZE;
+
+	alignment = alignment + g_id * 2 * aln_length * VSIZE;
+	alignment_index = alignment_index + g_id * 2 * VSIZE;
+
+	// Offset matrix (does not fit into private memory)
+	_matrix = _matrix + g_id * (read_length + 1) * (ref_length + 1) * VSIZE;
+	__global short * backtrack_matrix_ptr = _matrix;
 
 	/*########################
 	Init offsets and matrices
@@ -18,7 +24,7 @@ __kernel void calc_alignment_smith_waterman(__global const char* read, __global 
 	short16 score_matrix [(ref_length + 1) * SCORING_ROWS];
 
 	// Backtracking matrix
-	short16 backtrack_matrix [(ref_length + 1) * (read_length + 1)];
+	//short16 backtrack_matrix [(ref_length + 1) * (read_length + 1)];
 
 	// offset for first and second row
 	int prev_row = 0;
@@ -31,7 +37,8 @@ __kernel void calc_alignment_smith_waterman(__global const char* read, __global 
 
 	for (short ref_pos = 0; ref_pos < ref_length + 1; ++ref_pos) {
 		score_matrix[ref_pos] = v_null;
-		backtrack_matrix[ref_pos] = v_start;
+		//backtrack_matrix[ref_pos] = v_start;
+		vstore16(v_start, ref_pos, backtrack_matrix_ptr);
 	}
 
 	for (short read_pos = 0; read_pos < read_length; ++read_pos) {
@@ -55,11 +62,14 @@ __kernel void calc_alignment_smith_waterman(__global const char* read, __global 
 				char_to_score[read[read_pos + 15 * (read_length)]]
 		);
 
-		backtrack_matrix[current_row_aln * (ref_length + 1)] = v_start;
+		//backtrack_matrix[current_row_aln * (ref_length + 1)] = v_start;
 		score_matrix[cur_row * (ref_length + 1)] = v_null;
 
 		//printf("Read base =%c and score=%i\n", read[read_pos],read_cache.s0);
 		//printf("Read2 base =%c and score2=%i\n", read[read_pos+ read_length],read_cache.s1);
+
+		backtrack_matrix_ptr += (ref_length + 1) * VSIZE;
+		vstore16(v_start, 0, backtrack_matrix_ptr);
 
 		for (short ref_pos = 0; ref_pos < ref_length; ++ref_pos) {
 
@@ -101,9 +111,9 @@ __kernel void calc_alignment_smith_waterman(__global const char* read, __global 
 			pointer = select(pointer, v_diag, cur == diag);
 			pointer = select(pointer, v_start, cur == v_null);
 
-			backtrack_matrix[current_row_aln * (ref_length + 1) + ref_pos + 1] = pointer;
+			//backtrack_matrix[current_row_aln * (ref_length + 1) + ref_pos + 1] = pointer;
 
-			//printf("%hi ", pointer.s7);
+			vstore16(pointer, ref_pos + 1, backtrack_matrix_ptr);
 
 			best_read_pos = select(best_read_pos,(short16)(read_pos),cur > max_score);
 			best_ref_pos = select(best_ref_pos,(short16)(ref_pos),cur > max_score);
@@ -113,6 +123,8 @@ __kernel void calc_alignment_smith_waterman(__global const char* read, __global 
 
 			score_matrix[cur_row * (ref_length + 1) + ref_pos + 1] =  cur;
 
+			//printf("Read: %hi, Ref: %hi, Pos: %i, Pointer: %hi\n", read_pos, ref_pos, pos, backtrack_matrix[pos].s0);
+			//printf("Read: %hi, Ref: %hi, Pointer: %hi\n", read_pos, ref_pos, backtrack_matrix[1].s0);
 		}
 		//printf("\n");
 
@@ -121,6 +133,11 @@ __kernel void calc_alignment_smith_waterman(__global const char* read, __global 
 		cur_row %= SCORING_ROWS;
 		++current_row_aln;
 	}
+
+//	printf("Best read pos %hi\n",best_read_pos.s0);
+//	printf("Best read length %i\n",read_length);
+//	printf("Best ref pos %hi\n",best_ref_pos.s0);
+//	printf("Best ref length %i\n",ref_length);
 
 	/*########################
 	Backtrack
@@ -137,14 +154,13 @@ __kernel void calc_alignment_smith_waterman(__global const char* read, __global 
 		short read_pos = v_read_pos[i];
 		short ref_pos = v_ref_pos[i];
 
-		//printf("Best read pos %i : %hi\n", i, read_pos);
-		//printf("Best ref pos %i : %hi\n", i, ref_pos);
+//		printf("Best read pos %i : %hi\n", i, read_pos);
+//		printf("Best ref pos %i : %hi\n", i, ref_pos);
 
 		int aln_pos = aln_length - 2;
 
-		short backtrack = ((short *)(&backtrack_matrix[(read_pos + 1) * (ref_length + 1) + ref_pos + 1]))[i];
-
-		//printf("Backtrack %i : %hi\n", i, backtrack);
+		//short backtrack = ((short *)(&backtrack_matrix[(read_pos + 1) * (ref_length + 1) + ref_pos + 1]))[i];
+		short backtrack = _matrix[VSIZE * ((read_pos + 1) * (ref_length + 1)  + (ref_pos + 1)) + i];
 
 		while(backtrack != START) {
 
@@ -166,7 +182,8 @@ __kernel void calc_alignment_smith_waterman(__global const char* read, __global 
 				--read_pos;
 				--ref_pos;
 			}
-			backtrack = ((short *)(&backtrack_matrix[(read_pos + 1) * (ref_length + 1) + ref_pos + 1]))[i];
+			backtrack = _matrix[VSIZE * ((read_pos + 1) * (ref_length + 1)  + (ref_pos + 1)) + i];
+			//backtrack = ((short *)(&backtrack_matrix[(read_pos + 1) * (ref_length + 1) + ref_pos + 1]))[i];
 			--aln_pos;
 		}
 
@@ -175,11 +192,18 @@ __kernel void calc_alignment_smith_waterman(__global const char* read, __global 
 	}
 }
 
-__kernel void calc_alignment_needleman_wunsch(__global const char* read, __global const char* ref, __global char * alignment, __global short * alignment_index) {
+__kernel void calc_alignment_needleman_wunsch(__global const char* read, __global const char* ref, __global char * alignment, __global short * alignment_index, __global short * _matrix) {
 
-	// Offset read and ref pointers
+	// Offset pointers
 	read = read + g_id * read_length * VSIZE;
 	ref = ref + g_id * ref_length * VSIZE;
+
+	alignment = alignment + g_id * 2 * aln_length * VSIZE;
+	alignment_index = alignment_index + g_id * 2 * VSIZE;
+
+	// Offset matrix (does not fit into private memory)
+	_matrix = _matrix + g_id * (read_length + 1) * (ref_length + 1) * VSIZE;
+	__global short * backtrack_matrix_ptr = _matrix;
 
 	/*########################
 	Init offsets and matrices
@@ -201,7 +225,7 @@ __kernel void calc_alignment_needleman_wunsch(__global const char* read, __globa
 	short16 score_matrix [(ref_length + 1) * SCORING_ROWS];
 
 	// Backtracking matrix
-	short16 backtrack_matrix [(ref_length + 1) * (read_length + 1)];
+	//short16 backtrack_matrix [(ref_length + 1) * (read_length + 1)];
 
 	// offset for first and second row
 	int prev_row = 0;
@@ -214,7 +238,8 @@ __kernel void calc_alignment_needleman_wunsch(__global const char* read, __globa
 
 	for (short ref_pos = 0; ref_pos < ref_length + 1; ++ref_pos) {
 		score_matrix[ref_pos] = v_null;
-		backtrack_matrix[ref_pos] = v_start;
+		vstore16(v_start, ref_pos, backtrack_matrix_ptr);
+		//backtrack_matrix[ref_pos] = v_start;
 		//printf("%hi ",v_start.sF);
 	}
 	//printf("\n");
@@ -240,9 +265,12 @@ __kernel void calc_alignment_needleman_wunsch(__global const char* read, __globa
 				char_to_score[read[read_pos + 15 * (read_length)]]
 		);
 
-		backtrack_matrix[current_row_aln * (ref_length + 1)] = v_up;
+		//backtrack_matrix[current_row_aln * (ref_length + 1)] = v_up;
 		//printf("%hi ", backtrack_matrix[current_row_aln * (ref_length + 1)].sF);
 		score_matrix[cur_row * (ref_length + 1)] = (short16)((read_pos + 1) * score_gap_ref);
+
+		backtrack_matrix_ptr += (ref_length + 1) * VSIZE;
+		vstore16(v_up, 0, backtrack_matrix_ptr);
 
 		max_read_pos = select(max_read_pos, (short16)(read_pos - 1), (max_read_pos == (short16)(read_length - 1)) && convert_short16(read_cache == v_nullchar));
 		global_row_max_index = select(global_row_max_index, row_max_index, max_read_pos + (short16)(1) == (short16)(read_pos));
@@ -310,7 +338,9 @@ __kernel void calc_alignment_needleman_wunsch(__global const char* read, __globa
 			pointer = select(pointer, v_up, cur == up);
 			pointer = select(pointer, v_diag, cur == diag);
 
-			backtrack_matrix[current_row_aln * (ref_length + 1) + ref_pos + 1] = pointer;
+			//backtrack_matrix[current_row_aln * (ref_length + 1) + ref_pos + 1] = pointer;
+
+			vstore16(pointer, ref_pos + 1, backtrack_matrix_ptr);
 
 			max_ref_pos = select(max_ref_pos, (short16)(ref_pos - 1),(max_ref_pos == (ref_length - (short16)(1))) && convert_short16(ref_cache == v_nullchar));
 			row_max_index = select(row_max_index, ref_pos, cur > row_max);
@@ -350,9 +380,8 @@ __kernel void calc_alignment_needleman_wunsch(__global const char* read, __globa
 
 		int aln_pos = aln_length - 2;
 
-		short backtrack = ((short *)(&backtrack_matrix[(read_pos + 1) * (ref_length + 1) + ref_pos + 1]))[i];
-
-		//printf("Backtrack %i : %hi\n", i, backtrack);
+		//short backtrack = ((short *)(&backtrack_matrix[(read_pos + 1) * (ref_length + 1) + ref_pos + 1]))[i];
+		short backtrack = _matrix[VSIZE * ((read_pos + 1) * (ref_length + 1)  + (ref_pos + 1)) + i];
 
 		while(backtrack != START) {
 
@@ -375,7 +404,8 @@ __kernel void calc_alignment_needleman_wunsch(__global const char* read, __globa
 				--ref_pos;
 			}
 
-			backtrack = ((short *)(&backtrack_matrix[(read_pos + 1) * (ref_length + 1) + ref_pos + 1]))[i];
+			//backtrack = ((short *)(&backtrack_matrix[(read_pos + 1) * (ref_length + 1) + ref_pos + 1]))[i];
+			backtrack = _matrix[VSIZE * ((read_pos + 1) * (ref_length + 1)  + (ref_pos + 1)) + i];
 			--aln_pos;
 		}
 

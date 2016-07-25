@@ -17,6 +17,8 @@ size_t pad(char const * * strings, int const & n, char const & pad) {
 	for (int i = 0; i < n; ++i) {
 		max_length = max(max_length, strlen(strings[i]));
 	}
+	// Add one for null character termination
+	//++max_length;
 	for (int i = 0; i < n; ++i) {
 		char * tmp = new char[max_length];
 		size_t length = strlen(strings[i]);
