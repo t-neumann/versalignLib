@@ -24,7 +24,7 @@ public:
 
 		Parameters.has_key("score_match") ?
 				scoreMatch = Parameters.param_int("score_match") : exception =
-						true;
+				true;
 		Parameters.has_key("score_mismatch") ?
 				scoreMismatch = Parameters.param_int("score_mismatch") :
 				exception = true;
@@ -36,10 +36,10 @@ public:
 				exception = true;
 		Parameters.has_key("read_length") ?
 				readLength = Parameters.param_int("read_length") : exception =
-						true;
+				true;
 		Parameters.has_key("ref_length") ?
 				refLength = Parameters.param_int("ref_length") : exception =
-						true;
+				true;
 
 		if (exception) {
 			throw "Cannot instantiate Kernel. Lacking parameters";
@@ -51,14 +51,18 @@ public:
 		initialize_opencl_environment();
 	}
 	~OpenCLKernel() {
-		if (host_reads != 0 && host_refs != 0 && host_results != 0
-				&& host_indices != 0 && host_matrix != 0) {
+		if (host_reads != 0)
 			delete[] host_reads;
+		if (host_refs != 0)
 			delete[] host_refs;
-			delete[] host_results;
+		if (host_scores != 0)
+			delete[] host_scores;
+		if (host_alignments != 0)
+			delete[] host_alignments;
+		if (host_indices != 0)
 			delete[] host_indices;
+		if (host_matrix != 0)
 			delete[] host_matrix;
-		}
 	}
 	void score_alignments(int const & opt, int const & aln_number,
 			char const * const * const reads, char const * const * const refs,
@@ -76,7 +80,7 @@ private:
 	cl::Kernel kernel;
 
 	cl::Device setup_opencl_device(cl_device_type const & device_type);
-	std::vector<cl::Device> fission_opencl_device(cl::Device const & device);
+	std::vector<cl::Device> fission_opencl_device(cl::Device & device);
 	cl::Context setup_context(cl::Device const & device);
 	cl::Program setup_program(cl::Context const & context);
 	cl::CommandQueue setup_queue(cl::Context const & context,
@@ -84,7 +88,7 @@ private:
 	cl::Kernel setup_kernel(cl::Program const & program,
 			char const * kernel_name);
 	size_t calculate_batch_size_from_memory(cl::Kernel const & kernel,
-			cl::Device const & device, int const & opt);
+			cl::Device const & device, bool const & score);
 	void partition_load(int const & aln_number, size_t const & batch_size,
 			size_t & batch_num, size_t & overhang);
 
@@ -103,15 +107,20 @@ private:
 
 	char * host_reads = 0;
 	char * host_refs = 0;
-	char * host_results = 0;
+	short * host_scores = 0;
+	char * host_alignments = 0;
 	short * host_indices = 0;
 	short * host_matrix = 0;
 
-	char const * const score_smith_waterman_kernel = "score_alignment_smith_waterman";
-	char const * const align_smith_waterman_kernel = "calc_alignment_smith_waterman";
+	char const * const score_smith_waterman_kernel =
+			"score_alignment_smith_waterman";
+	char const * const align_smith_waterman_kernel =
+			"calc_alignment_smith_waterman";
 
-	char const * const score_needleman_wunsch_kernel = "score_alignment_needleman_wunsch";
-	char const * const align_needleman_wunsch_kernel = "calc_alignment_needleman_wunsch";
+	char const * const score_needleman_wunsch_kernel =
+			"score_alignment_needleman_wunsch";
+	char const * const align_needleman_wunsch_kernel =
+			"calc_alignment_needleman_wunsch";
 
 	char const * cl_error_to_string(cl_int ci_error_num);
 

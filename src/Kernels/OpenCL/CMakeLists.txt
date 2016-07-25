@@ -33,8 +33,50 @@ ADD_CUSTOM_COMMAND(
 	MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/opencl_c/alignment_kernels.cl
 )
 
-add_library(openCLKernel STATIC ${PROJECT_BINARY_DIR}/opencl_definitions.h ${PROJECT_BINARY_DIR}/scoring_kernels.h ${PROJECT_BINARY_DIR}/alignment_kernels.h ocl_testing.cpp)
-add_library(testLib STATIC ${PROJECT_BINARY_DIR}/opencl_definitions.h ${PROJECT_BINARY_DIR}/scoring_kernels.h ${PROJECT_BINARY_DIR}/alignment_kernels.h OpenCLKernel.cpp)
+FIND_PATH(OPENCL_INCLUDE_DIR
+	NAMES
+		CL/cl.h OpenCL/cl.h
+	PATHS
+		${PROJECT_SOURCE_DIR}/include
+)
+
+message(STATUS "This is include dir " ${OPENCL_INCLUDE_DIR})
+
+IF(CMAKE_SIZEOF_VOID_P EQUAL 4)
+	SET(OPENCL_LIB_SEARCH_PATH
+		${OPENCL_LIB_SEARCH_PATH}
+		${PROJECT_SOURCE_DIR}/opencl-AMD-sdk/x86/lib)
+ELSEIF(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  SET(OPENCL_LIB_SEARCH_PATH
+		${OPENCL_LIB_SEARCH_PATH}
+		${PROJECT_SOURCE_DIR}/opencl-AMD-sdk/x86_64/lib)
+ENDIF(CMAKE_SIZEOF_VOID_P EQUAL 4)
 
 
+FIND_LIBRARY(
+    OPENCL_LIBRARY
+    NAMES OpenCL
+    PATHS ${OPENCL_LIB_SEARCH_PATH})
 
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(
+  OpenCL
+  DEFAULT_MSG
+  OPENCL_LIBRARY OPENCL_INCLUDE_DIR)
+
+if(OPENCL_FOUND)
+  set(OPENCL_LIBRARIES ${OPENCL_LIBRARY})
+else(OPENCL_FOUND)
+  set(OPENCL_LIBRARIES)
+endif(OPENCL_FOUND)
+
+mark_as_advanced(
+  OPENCL_INCLUDE_DIR
+  OPENCL_LIBRARY
+  )
+  
+INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIR})
+
+#add_library(openCLKernel STATIC ${PROJECT_BINARY_DIR}/opencl_definitions.h ${PROJECT_BINARY_DIR}/scoring_kernels.h ${PROJECT_BINARY_DIR}/alignment_kernels.h ocl_testing.cpp)
+add_library(OpenCLKernel SHARED ${PROJECT_BINARY_DIR}/opencl_definitions.h ${PROJECT_BINARY_DIR}/scoring_kernels.h ${PROJECT_BINARY_DIR}/alignment_kernels.h OpenCLKernel.cpp OpenCLKernel_dllexport.cpp)
+target_link_libraries(OpenCLKernel ${OPENCL_LIBRARY})

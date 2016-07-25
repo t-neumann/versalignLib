@@ -29,7 +29,7 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 
 	int alignment_algorithm = opt & 0xF;
 
-	char const * const kernel_name;
+	char const * kernel_name = "";
 
 	switch (alignment_algorithm) {
 	case 0:
@@ -45,7 +45,7 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 
 	kernel = setup_kernel(program, kernel_name);
 
-	size_t batch_size = calculate_batch_size_from_memory(kernel, device, opt);
+	size_t batch_size = calculate_batch_size_from_memory(kernel, device, true);
 
 	size_t batch_num;
 	size_t overhang;
@@ -71,7 +71,7 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 				sizeof(char) * batch_size * refLength, host_refs);
 		cl::Buffer result_buffer(context,
 		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size,
-				host_results);
+				host_scores);
 
 		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
 
@@ -113,8 +113,8 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 		cl::Buffer ref_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
 				sizeof(char) * batch_size * refLength, host_refs);
 		cl::Buffer result_buffer(context,
-				CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
-				sizeof(short) * batch_size, host_results);
+		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size,
+				host_scores);
 
 		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
 
@@ -134,17 +134,150 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 	}
 }
 
+void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
+		char const * const * const reads, char const * const * const refs,
+		Alignment * const alignments) {
+
+	int alignment_algorithm = opt & 0xF;
+
+	char const * kernel_name = "";
+
+	switch (alignment_algorithm) {
+	case 0:
+		kernel_name = align_smith_waterman_kernel;
+		break;
+	case 1:
+		kernel_name = align_needleman_wunsch_kernel;
+		break;
+	default:
+		// Unsupported mode
+		break;
+	}
+
+	kernel = setup_kernel(program, kernel_name);
+
+	size_t batch_size = calculate_batch_size_from_memory(kernel, device, false);
+
+	size_t batch_num;
+	size_t overhang;
+
+	partition_load(aln_number, batch_size, batch_num, overhang);
+
+	for (int batch = 0; batch < batch_num; ++batch) {
+
+		init_host_memory(batch_size, false);
+
+		for (int i = 0; i < batch_size; ++i) {
+			memcpy(&host_reads[i * readLength], reads[batch * batch_size + i],
+					sizeof(char) * readLength);
+			std::cout << "Read: " << reads[batch * batch_size + i] << std::endl;
+			memcpy(&host_refs[i * refLength], refs[batch * batch_size + i],
+					sizeof(char) * refLength);
+			std::cout << "Ref: " << refs[batch * batch_size + i] << std::endl;
+		}
+
+		cl::Buffer read_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+				sizeof(char) * batch_size * readLength, host_reads);
+		cl::Buffer ref_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+				sizeof(char) * batch_size * refLength, host_refs);
+		cl::Buffer result_buffer(context,
+				CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+				sizeof(char) * alnLength * 2 * batch_size, host_alignments);
+		cl::Buffer index_buffer(context,
+				CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+				sizeof(short) * batch_size * 2, host_indices);
+		cl::Buffer matrix_buffer(context,
+				CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+				sizeof(short) * matrix_size * batch_size, host_matrix);
+
+		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
+
+		kernel.setArg(0, read_buffer);
+		kernel.setArg(1, ref_buffer);
+		kernel.setArg(2, result_buffer);
+		kernel.setArg(3, index_buffer);
+		kernel.setArg(4, matrix_buffer);
+
+		int workers = batch_size / VECTORS_PER_WORKITEM;
+
+		std::cout << "Work groups: " << workers << std::endl;
+
+		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
+				cl::NullRange);
+		queue.finish();
+
+		std::cout << "Finished batch " << batch << ".\n";
+	}
+
+	if (overhang != 0) {
+
+		init_host_memory(batch_size, false);
+
+		for (int remainder = 0; remainder < overhang; ++remainder) {
+
+			memcpy(&host_reads[remainder * readLength],
+					reads[batch_num * batch_size + remainder],
+					sizeof(char) * readLength);
+			std::cout << "Read: " << reads[batch_num * batch_size + remainder]
+					<< std::endl;
+			memcpy(&host_refs[remainder * refLength],
+					refs[batch_num * batch_size + remainder],
+					sizeof(char) * refLength);
+			std::cout << "Ref: " << refs[batch_num * batch_size + remainder]
+					<< std::endl;
+		}
+
+		cl::Buffer read_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+				sizeof(char) * batch_size * readLength, host_reads);
+		cl::Buffer ref_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+				sizeof(char) * batch_size * refLength, host_refs);
+		cl::Buffer result_buffer(context,
+				CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+				sizeof(char) * alnLength * 2 * batch_size, host_alignments);
+		cl::Buffer index_buffer(context,
+				CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+				sizeof(short) * batch_size * 2, host_indices);
+		cl::Buffer matrix_buffer(context,
+				CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+				sizeof(short) * matrix_size * batch_size, host_matrix);
+
+		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
+
+		kernel.setArg(0, read_buffer);
+		kernel.setArg(1, ref_buffer);
+		kernel.setArg(2, result_buffer);
+		kernel.setArg(3, index_buffer);
+		kernel.setArg(4, matrix_buffer);
+
+		int workers = batch_size / VECTORS_PER_WORKITEM;
+
+		std::cout << "Work groups: " << workers << std::endl;
+
+		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
+				cl::NullRange);
+		queue.finish();
+
+		std::cout << "Finished overhang of " << overhang << ".\n";
+	}
+}
+
 void OpenCLKernel::initialize_opencl_environment() {
 
 	cl::Device cpu_device = setup_opencl_device(CL_DEVICE_TYPE_CPU);
+
 	std::vector<cl::Device> sub_devices = fission_opencl_device(cpu_device);
 
 	if (sub_devices.size() == 0) {
 		throw "Cannot partition OpenCL CPU device.";
 	}
+
 	device = sub_devices[0];
 	context = setup_context(device);
+	std::cout << cpu_device.getInfo<CL_DEVICE_NAME>() << "\n\n";
+	char a;
+	std::cin >> a;
 	program = setup_program(context);
+
 	queue = setup_queue(context, device);
 }
 
@@ -172,7 +305,7 @@ void print_device_info(cl::Device const & device) {
 			<< std::endl;
 }
 
-void present_devices(std::vector<cl::Device> const & all_devices) {
+void present_devices(std::vector<cl::Device> & all_devices) {
 	std::cout << "Available devices:" << std::endl;
 
 	for (std::vector<cl::Device>::iterator i = all_devices.begin();
@@ -209,8 +342,15 @@ cl::Program OpenCLKernel::setup_program(cl::Context const & context) {
 
 	cl::Program program(context, sources);
 
+	std::cout << "Only thing left: Building the program." << std::endl;
+	char a;
+	std::cin >> a;
+
 	cl_error_num = program.build(compilerDefines.str().c_str());
 	check_opencl_success("Error building OpenCL program: ", cl_error_num);
+
+	std::cout << "Done: Building the program." << std::endl;
+	std::cin >> a;
 
 	return program;
 }
@@ -248,7 +388,7 @@ cl::Device OpenCLKernel::setup_opencl_device(
 	present_devices(all_devices);
 
 	std::vector<cl::Device> cpu_devices;
-	cl_error_num = default_platform.getDevices(device_type, &all_devices);
+	cl_error_num = default_platform.getDevices(device_type, &cpu_devices);
 	check_opencl_success("OpenCL device query failed: ", cl_error_num);
 
 	if (cpu_devices.size() == 0) {
@@ -260,22 +400,22 @@ cl::Device OpenCLKernel::setup_opencl_device(
 	std::cout << "Using device: " << cpu_device.getInfo<CL_DEVICE_NAME>()
 			<< std::endl;
 
-//	std::vector<size_t> work_item_sizes = default_device.getInfo<
-//	CL_DEVICE_MAX_WORK_ITEM_SIZES>();
-//	for (std::vector<size_t>::iterator itor = work_item_sizes.begin();
-//			itor != work_item_sizes.end(); ++itor) {
-//		std::cout << "Available work item sizes: " << *itor << std::endl;
-//	}
-
-	std::cout << "Build in kernels: "
-			<< cpu_device.getInfo<CL_DEVICE_BUILT_IN_KERNELS>() << std::endl;
-
 	return cpu_device;
 
 }
 
 std::vector<cl::Device> OpenCLKernel::fission_opencl_device(
-		cl::Device const & device) {
+		cl::Device & device) {
+
+	std::vector<cl::Device> subdevices;
+
+	if (device.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_ext_device_fission")
+			== std::string::npos) {
+		std::cout << "No device fission support! Returning entire device."
+				<< std::endl;
+		subdevices.push_back(device);
+		return subdevices;
+	}
 
 	// Calculate number of used cores/hyperthreading threads
 	// Always only use 3 quarters for computation and leave 1 quarter for background processes
@@ -283,12 +423,10 @@ std::vector<cl::Device> OpenCLKernel::fission_opencl_device(
 	int fission = max_devices / 4 * 3;
 
 	// Partition CPU
-
-	std::vector<cl::Device> subdevices;
-
 	cl_device_partition_property props[4];
 	props[0] = CL_DEVICE_PARTITION_BY_COUNTS;
-	props[1] = std::max(fission, 1);
+	//props[1] = std::max(fission, 1);
+	props[1] = 1;
 	props[2] = CL_DEVICE_PARTITION_BY_COUNTS_LIST_END;
 	props[3] = 0;
 
@@ -305,30 +443,22 @@ cl::Kernel OpenCLKernel::setup_kernel(cl::Program const & program,
 }
 
 size_t OpenCLKernel::calculate_batch_size_from_memory(cl::Kernel const & kernel,
-		cl::Device const & device, int const & opt) {
+		cl::Device const & device, bool const & score) {
 
 	size_t max_alloc_mem = device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
 	size_t max_work_items = kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(
 			device);
 	std::cout << "Kernel group size: " << max_work_items << std::endl;
 
-	int alignment_algorithm = opt & 0xF;
+	size_t _one_alignment;
 
-	size_t const _one_alignment;
-
-	switch (alignment_algorithm) {
-	case 0:
-		size_t const _one_alignment = sizeof(char) * readLength
-				+ sizeof(char) * refLength + sizeof(short) * 2;
-		break;
-	case 1:
-		size_t const _one_alignment = sizeof(char) * readLength
-				+ sizeof(char) * refLength + sizeof(char) * alnLength * 2
-				+ sizeof(short) * 2 + sizeof(short) * matrix_size;
-		break;
-	default:
-		// Unsupported mode
-		break;
+	if (score) {
+		_one_alignment = sizeof(char) * readLength + sizeof(char) * refLength
+				+ sizeof(short) * 2;
+	} else {
+		_one_alignment = sizeof(char) * readLength + sizeof(char) * refLength
+				+ sizeof(char) * alnLength * 2 + sizeof(short) * 2
+				+ sizeof(short) * matrix_size;
 	}
 
 	size_t const _1MB = 1024 * 1024;
@@ -355,34 +485,33 @@ void OpenCLKernel::partition_load(int const & aln_number,
 	batch_num = aln_number / batch_size;
 	overhang = aln_number & batch_size;
 
-	std::cout << "Num batches:\t" << num_batches << std::endl;
+	std::cout << "Num batches:\t" << batch_num << std::endl;
 	std::cout << "Overhang:\t" << overhang << std::endl;
 }
 
-void OpenCLKernel::init_host_memory(bool const & score,
-		size_t const & batch_size) {
+void OpenCLKernel::init_host_memory(size_t const & batch_size,
+		bool const & score) {
 
-	if (host_reads == 0 && host_refs == 0 && host_results == 0
-			&& host_indices == 0 && host_matrix == 0) {
-
-		char * host_reads = new char[batch_size * readLength];
-		char * host_refs = new char[batch_size * refLength];
-		if (score) {
-			short * host_results = new short[batch_size];
-		} else {
-			char * host_results = new char[alnLength * 2 * batch_size];
-			short * host_indices = new short[2 * batch_size];
-			short * host_matrix = new short[matrix_size * batch_size];
-		}
-	}
+	if (host_reads == 0)
+		host_reads = new char[batch_size * readLength];
+	if (host_refs == 0)
+		host_refs = new char[batch_size * refLength];
+	if (score && host_scores == 0)
+		host_scores = new short[batch_size];
+	if (!score && host_alignments == 0)
+		host_alignments = new char[alnLength * 2 * batch_size];
+	if (!score && host_indices == 0)
+		host_indices = new short[2 * batch_size];
+	if (!score && host_matrix == 0)
+		host_matrix = new short[matrix_size * batch_size];
 
 	memset(host_reads, 0, sizeof(char) * batch_size * readLength);
 	memset(host_refs, 0, sizeof(char) * batch_size * refLength);
 
 	if (score) {
-		memset(host_results, 0, sizeof(short) * batch_size);
+		memset(host_scores, 0, sizeof(short) * batch_size);
 	} else {
-		memset(host_results, 0, sizeof(char) * batch_size * alnLength * 2);
+		memset(host_alignments, 0, sizeof(char) * batch_size * alnLength * 2);
 		memset(host_indices, 0, sizeof(short) * batch_size * 2);
 		memset(host_matrix, 0, sizeof(short) * matrix_size * batch_size);
 	}

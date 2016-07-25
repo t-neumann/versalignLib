@@ -12,10 +12,11 @@
 //#include "Kernels/AVX-SSE/SSEKernel.h"
 #include "Kernels/AVX-SSE/AVXKernel.h"
 #include "util/versalignUtil.h"
-#include "Kernels/OpenCL/ocl_testing.h"
+//#include "Kernels/OpenCL/ocl_testing.h"
 #include "Timer/Timer.h"
 #include "AVXSupportChecker.h"
 #include "FastaProvider.h"
+//#include "Kernels/OpenCL/OpenCLKernel.h"
 #include <iostream>
 #include <fstream>
 
@@ -240,7 +241,7 @@ int main(int argc, char *argv[]) {
 
 	size_t max_ref_length =	pad(refs, seqNumber, REF_PAD);
 
-	run_ocl_test(reads, refs, seqNumber, max_read_length, max_ref_length);
+	//run_ocl_test(reads, refs, seqNumber, max_read_length, max_ref_length);
 
 	parameters.read_length = max_read_length;
 	parameters.ref_length = max_ref_length;
@@ -267,7 +268,7 @@ int main(int argc, char *argv[]) {
 		libPath = "../bin/libSSEKernel." + libSuffix;
 	}
 
-	//libPath = "../bin/libDefaultKernel.so";
+	libPath = "../bin/libOpenCLKernel." + libSuffix;
 
 	int dll = DLL_init(libPath.c_str(), &parameters);
 
