@@ -33,7 +33,8 @@ ADD_CUSTOM_COMMAND(
 	MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/opencl_c/alignment_kernels.cl
 )
 
-add_library(openCLKernel STATIC ${PROJECT_BINARY_DIR}/opencl_definitions.h ${PROJECT_BINARY_DIR}/scoring_kernels.h ${PROJECT_BINARY_DIR}/alignment_kernels.h ocl_testing.cpp)	
+add_library(openCLKernel STATIC ${PROJECT_BINARY_DIR}/opencl_definitions.h ${PROJECT_BINARY_DIR}/scoring_kernels.h ${PROJECT_BINARY_DIR}/alignment_kernels.h ocl_testing.cpp)
+add_library(testLib STATIC ${PROJECT_BINARY_DIR}/opencl_definitions.h ${PROJECT_BINARY_DIR}/scoring_kernels.h ${PROJECT_BINARY_DIR}/alignment_kernels.h OpenCLKernel.cpp)
 
 
 
