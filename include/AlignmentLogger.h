@@ -8,9 +8,11 @@
 #ifndef ALIGNMENTLOGGER_H
 #define ALIGNMENTLOGGER_H
 
+#include <stdio.h>
+
 class AlignmentLogger {
 	public:
-		virtual void log(int const lvl, char const * const title, char const * const msg) const = 0;
+		virtual void log(int const level, char const * const main, char const * const msg, size_t const & arg_num = 0, ...) = 0;
 		virtual ~AlignmentLogger() {}
 };
 

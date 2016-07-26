@@ -225,17 +225,15 @@ int main(int argc, char *argv[]) {
 	FastaProvider read_provider;
 	std::vector<const char *> readsVec = read_provider.parse_fasta(
 			"../testset/reads.fa");
-//	for (std::vector<const char *>::iterator i = readsVec.begin(); i != readsVec.end(); ++i) {
-//		std::cout << (*i) << std::endl;
-//	}
 	char const * * const reads = &readsVec[0];
 	std::vector<const char *> refsVec = read_provider.parse_fasta(
 			"../testset/refs.fa");
 	char const * * const refs = &refsVec[0];
 
 	if (readsVec.size() != refsVec.size()) {
-		std::cerr << "Unequal sizes of reads and ref set (" << readsVec.size()
-				<< " vs " << refsVec.size() << ").\n";
+
+		logger.log(3, "MAIN", std::string("Unequal sizes of reads and ref set (" + std::to_string(readsVec.size()) + " vs " + std::to_string(refsVec.size()) + ").").c_str());
+
 		return -1;
 	}
 
@@ -244,8 +242,6 @@ int main(int argc, char *argv[]) {
 	size_t max_read_length = pad(reads, seqNumber, READ_PAD);
 
 	size_t max_ref_length = pad(refs, seqNumber, REF_PAD);
-
-	//run_ocl_test(reads, refs, seqNumber, max_read_length, max_ref_length);
 
 	parameters.read_length = max_read_length;
 	parameters.ref_length = max_ref_length;
@@ -258,17 +254,17 @@ int main(int argc, char *argv[]) {
 #endif
 
 # ifdef _OPENMP
-	std::cout << "Compiled by an OpenMP-compliant implementation.\n";
-	std::cout << "Using " << parameters.num_threads << " threads.\n";
+	logger.log(0, "MAIN", "Compiled by an OpenMP-compliant implementation.");
+
 # endif
 
 	string libPath("../bin/libDefaultKernel.so");
 
 	if (check_avx2_support() && lib_exists(libPath)) {
-		std::cout << "AVX2 boost detected.\n";
+		logger.log(0, "MAIN", "AVX2 boost detected.");
 		libPath = "../bin/libAVXKernel." + libSuffix;
 	} else {
-		std::cout << "SSE4 mode activated.\n";
+		logger.log(0, "MAIN", "SSE4 mode activated.");
 		libPath = "../bin/libSSEKernel." + libSuffix;
 	}
 
@@ -291,8 +287,8 @@ int main(int argc, char *argv[]) {
 
 	plain_kernel = load_alignment_kernel();
 
-	std::cout << "Alignment kernel instantiated.\n";
-	std::cout << "Running with " << parameters.num_threads << " threads.\n";
+	logger.log(0, "MAIN", "Alignment kernel instantiated.");
+	logger.log(0, "MAIN", std::string("Running with " + std::to_string(parameters.num_threads) + " threads.").c_str());
 
 	short * scores = new short[seqNumber]();
 	Alignment * alignments = new Alignment[seqNumber]();

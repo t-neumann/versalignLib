@@ -18,6 +18,8 @@
 #include <iostream>
 
 using std::stringstream;
+using std::to_string;
+using std::string;
 
 extern char const opencl_definitions[];
 extern char const scoring_kernels[];
@@ -77,13 +79,14 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 
 		int workers = batch_size / VECTORS_PER_WORKITEM;
 
-		#ifndef NDEBUG
+#ifndef NDEBUG
 
-		stringstream msg;
-		msg << "Running \"" << kernel_name << "\" with " << workers + " work groups.";
-		Logger.log(0, "OpenCL", msg.str().c_str());
+		Logger.log(0, "OpenCL",
+				string(
+						"Running \"" + string(kernel_name) + "\" with "
+								+ to_string(workers) + " work groups.").c_str());
 
-		#endif
+#endif
 
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
@@ -96,13 +99,12 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 
 		collect_results_score(scores, batch * batch_size, batch_size);
 
-		#ifndef NDEBUG
+#ifndef NDEBUG
 
-		msg.str(std::string());
-		msg << "Finished batch " << batch << ".";
-		Logger.log(0, "OpenCL", msg.str().c_str());
+		Logger.log(0, "OpenCL",
+				string("Finished batch " + to_string(batch) + ".").c_str());
 
-		#endif
+#endif
 	}
 
 	if (overhang != 0) {
@@ -133,25 +135,27 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 
 		int workers = batch_size / VECTORS_PER_WORKITEM;
 
-		#ifndef NDEBUG
+#ifndef NDEBUG
 
-		stringstream msg;
-		msg << "Running \"" << kernel_name << "\" with " << workers + " work groups.";
-		Logger.log(0, "OpenCL", msg.str().c_str());
+		Logger.log(0, "OpenCL",
+				string(
+						"Running \"" + string(kernel_name) + "\" with "
+								+ to_string(workers) + " work groups.").c_str());
 
-		#endif
+#endif
 
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
 		queue.finish();
 
-		#ifndef NDEBUG
+#ifndef NDEBUG
 
-		msg.str(std::string());
-		msg << "Finished overhang of " << overhang << " items.";
-		Logger.log(0, "OpenCL", msg.str().c_str());
+		Logger.log(0, "OpenCL",
+				string(
+						"Finished overhang of " + to_string(overhang)
+								+ " items.").c_str());
 
-		#endif
+#endif
 
 		collect_results_score(scores, batch_num * batch_size, overhang);
 	}
@@ -219,13 +223,14 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 
 		int workers = batch_size / VECTORS_PER_WORKITEM;
 
-		#ifndef NDEBUG
+#ifndef NDEBUG
 
-		stringstream msg;
-		msg << "Running \"" << kernel_name << "\" with " << workers + " work groups.";
-		Logger.log(0, "OpenCL", msg.str().c_str());
+		Logger.log(0, "OpenCL",
+				string(
+						"Running \"" + string(kernel_name) + "\" with "
+								+ to_string(workers) + " work groups.").c_str());
 
-		#endif
+#endif
 
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
@@ -233,13 +238,12 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 
 		collect_results_align(alignments, batch * batch_size, batch_size);
 
-		#ifndef NDEBUG
+#ifndef NDEBUG
 
-		msg.str(std::string());
-		msg << "Finished batch " << batch << ".";
-		Logger.log(0, "OpenCL", msg.str().c_str());
+		Logger.log(0, "OpenCL",
+				string("Finished batch " + to_string(batch) + ".").c_str());
 
-		#endif
+#endif
 	}
 
 	if (overhang != 0) {
@@ -278,13 +282,14 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 
 		int workers = batch_size / VECTORS_PER_WORKITEM;
 
-		#ifndef NDEBUG
+#ifndef NDEBUG
 
-		stringstream msg;
-		msg << "Running \"" << kernel_name << "\" with " << workers + " work groups.";
-		Logger.log(0, "OpenCL", msg.str().c_str());
+		Logger.log(0, "OpenCL",
+				string(
+						"Running \"" + string(kernel_name) + "\" with "
+								+ to_string(workers) + " work groups.").c_str());
 
-		#endif
+#endif
 
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
@@ -292,13 +297,14 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 
 		collect_results_align(alignments, batch_num * batch_size, overhang);
 
-		#ifndef NDEBUG
+#ifndef NDEBUG
 
-		msg.str(std::string());
-		msg << "Finished overhang of " << overhang << " items.";
-		Logger.log(0, "OpenCL", msg.str().c_str());
+		Logger.log(0, "OpenCL",
+				string(
+						"Finished overhang of " + to_string(overhang)
+								+ " items.").c_str());
 
-		#endif
+#endif
 	}
 }
 
@@ -319,34 +325,59 @@ void OpenCLKernel::initialize_opencl_environment() {
 	queue = setup_queue(context, device);
 }
 
-std::string get_device_type(cl_int const & device_type) {
+string get_device_type(cl_int const & device_type) {
 	return device_type == CL_DEVICE_TYPE_GPU ? "GPU" : "CPU";
 }
 
-char const * get_device_info(cl::Device const & device) {
+void log_device_info(cl::Device const & device) {
 
-	stringstream info;
-		info << device.getInfo<CL_DEVICE_NAME>() << "\n\n"
-			 << "\tType: " << get_device_type(device.getInfo<CL_DEVICE_TYPE>()) << std::endl
-			 << "\tVendor: " << device.getInfo<CL_DEVICE_VENDOR>() << std::endl
-			 << "\tMax Compute Units: " << device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << std::endl
-			 << "\tGlobal Memory: " << device.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>() << std::endl
-			 << "\tMax Clock Frequency: " << device.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>() << std::endl
-			 << "\tMax Allocateable Memory: " << device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>() << std::endl
-			 << "\tLocal Memory: " << device.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>() << std::endl
-			 << "\tAvailable: " << device.getInfo< CL_DEVICE_AVAILABLE>() << std::endl;
-
-	return info.str().c_str();
+	Logger.log(0, "OpenCL", device.getInfo<CL_DEVICE_NAME>().c_str());
+	Logger.log(0, "OpenCL",
+			string(
+					"Type:\t"
+							+ get_device_type(device.getInfo<CL_DEVICE_TYPE>())).c_str());
+	Logger.log(0, "OpenCL",
+			string("Vendor:\t" + device.getInfo<CL_DEVICE_VENDOR>()).c_str());
+	Logger.log(0, "OpenCL",
+			string(
+					"Max Compute Units:\t"
+							+ to_string(
+									device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>())).c_str());
+	Logger.log(0, "OpenCL",
+			string(
+					"Global Memory:\t"
+							+ to_string(
+									device.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>())).c_str());
+	Logger.log(0, "OpenCL",
+			string(
+					"Max Clock Frequency:\t"
+							+ to_string(
+									device.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>())).c_str());
+	Logger.log(0, "OpenCL",
+			string(
+					"Max Allocateable Memory:\t"
+							+ to_string(
+									device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>())).c_str());
+	Logger.log(0, "OpenCL",
+			string(
+					"Local Memory:\t"
+							+ to_string(
+									device.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>())).c_str());
+	Logger.log(0, "OpenCL",
+			string(
+					"Available:\t"
+							+ to_string(
+									device.getInfo< CL_DEVICE_AVAILABLE>())).c_str());
+	Logger.log(0, "OpenCL", "");
 }
 
 void present_devices(std::vector<cl::Device> & all_devices) {
 
-
-	Logger.log(0, "OpenCL", "Available devices:");
+	Logger.log(0, "OpenCL", "Available devices:", 1, "");
 
 	for (std::vector<cl::Device>::iterator i = all_devices.begin();
 			i != all_devices.end(); ++i) {
-		Logger.log(0, "OpenCL", get_device_info(*i));
+		log_device_info(*i);
 	}
 }
 
@@ -360,11 +391,11 @@ cl::Program OpenCLKernel::setup_program(cl::Context const & context) {
 
 	cl::Program::Sources sources;
 
-// Load Kernel
-	std::stringstream source_loader;
+	// Load Kernel
+	stringstream source_loader;
 	source_loader << opencl_definitions << scoring_kernels << alignment_kernels;
 
-	std::string source(source_loader.str());
+	string source(source_loader.str());
 
 	sources.push_back(std::make_pair(source.data(), source.length()));
 
@@ -394,19 +425,24 @@ cl::Device OpenCLKernel::setup_opencl_device(
 
 	cl_int cl_error_num = CL_SUCCESS;
 
-//get all platforms (drivers)
 	std::vector<cl::Platform> all_platforms;
 	cl_error_num = cl::Platform::get(&all_platforms);
 	check_opencl_success("OpenCL platform query failed: ", cl_error_num);
 
 	if (all_platforms.size() == 0) {
-		std::cout << " No platforms found. Check OpenCL installation!\n";
+
+		Logger.log(3, "OpenCL",
+				"No platforms found. Check OpenCL installation!");
+
 		exit(-1);
 	}
 
 	cl::Platform default_platform = all_platforms[0];
-	std::cout << "Using platform: "
-			<< default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
+
+	Logger.log(0, "OpenCL",
+			string(
+					"Using platform:\t"
+							+ default_platform.getInfo<CL_PLATFORM_NAME>()).c_str());
 
 //get default device of the default platform
 	std::vector<cl::Device> all_devices;
@@ -414,24 +450,21 @@ cl::Device OpenCLKernel::setup_opencl_device(
 			&all_devices);
 	check_opencl_success("OpenCL device query failed: ", cl_error_num);
 
-	#ifndef NDEBUG
-
 	present_devices(all_devices);
-
-	#endif
 
 	std::vector<cl::Device> cpu_devices;
 	cl_error_num = default_platform.getDevices(device_type, &cpu_devices);
 	check_opencl_success("OpenCL device query failed: ", cl_error_num);
 
 	if (cpu_devices.size() == 0) {
-		std::cout << "No devices found. Check OpenCL installation!\n";
+
+		Logger.log(3, "OpenCL",  "No devices found. Check OpenCL installation!");
 		exit(-1);
 	}
 
 	cl::Device cpu_device = cpu_devices[0];
-	std::cout << "Using device: " << cpu_device.getInfo<CL_DEVICE_NAME>()
-			<< std::endl;
+
+	Logger.log(0, "OpenCL",  string("Using device:\t" + cpu_device.getInfo<CL_DEVICE_NAME>()).c_str());
 
 	return cpu_device;
 
@@ -443,9 +476,10 @@ std::vector<cl::Device> OpenCLKernel::fission_opencl_device(
 	std::vector<cl::Device> subdevices;
 
 	if (device.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_ext_device_fission")
-			== std::string::npos) {
-		std::cout << "No device fission support! Returning entire device."
-				<< std::endl;
+			== string::npos) {
+
+		Logger.log(1, "OpenCL",  "No device fission support! Returning entire device.");
+
 		subdevices.push_back(device);
 		return subdevices;
 	}
@@ -454,7 +488,8 @@ std::vector<cl::Device> OpenCLKernel::fission_opencl_device(
 	// Always only use maximum of 3 quarters for computation and leave 1 quarter for background processes
 	int max_devices = device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
 	int fission = max_devices / 4 * 3;
-	fission = std::max(std::min(fission, Parameters.param_int("num_threads")), 1);
+	fission = std::max(std::min(fission, Parameters.param_int("num_threads")),
+			1);
 
 	// Partition CPU
 	cl_device_partition_property props[4];
@@ -465,7 +500,7 @@ std::vector<cl::Device> OpenCLKernel::fission_opencl_device(
 
 	device.createSubDevices(props, &subdevices);
 
-	std::cout << "Created " << subdevices.size() << " subdevices with " << fission << " cores/threads.\n";
+	Logger.log(0, "OpenCL",  string("Created " + to_string(subdevices.size()) + " subdevices with " + to_string(fission) + " cores/threads.").c_str());
 
 	return subdevices;
 }
@@ -481,7 +516,12 @@ size_t OpenCLKernel::calculate_batch_size_from_memory(cl::Kernel const & kernel,
 	size_t max_alloc_mem = device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>();
 	size_t max_work_items = kernel.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(
 			device);
-	std::cout << "Kernel group size: " << max_work_items << std::endl;
+
+#ifndef NDEBUG
+
+	Logger.log(0, "OpenCL",  string("Kernel group size:\t" + to_string(max_work_items)).c_str());
+
+#endif
 
 	size_t _one_alignment;
 
@@ -496,8 +536,11 @@ size_t OpenCLKernel::calculate_batch_size_from_memory(cl::Kernel const & kernel,
 
 	size_t const _1MB = 1024 * 1024;
 
-	std::cout << "1MB in bytes:\t" << _1MB << std::endl;
-	std::cout << "Sizeof Alignment in bytes:\t" << _one_alignment << std::endl;
+#ifndef NDEBUG
+
+	Logger.log(0, "OpenCL",  string("Sizeof Alignment in bytes:\t" + to_string(_one_alignment)).c_str());
+
+#endif
 
 	size_t batch_size =
 			((_1MB / _one_alignment) / VECTORS_PER_WORKITEM
@@ -508,7 +551,11 @@ size_t OpenCLKernel::calculate_batch_size_from_memory(cl::Kernel const & kernel,
 
 	batch_size = std::min(batch_size, max_work_items * VECTORS_PER_WORKITEM);
 
-	std::cout << "Batch size:\t" << batch_size << std::endl;
+#ifndef NDEBUG
+
+	Logger.log(0, "OpenCL",  string("Batch size:\t" + to_string(batch_size)).c_str());
+
+#endif
 
 	return batch_size;
 }
@@ -518,8 +565,13 @@ void OpenCLKernel::partition_load(int const & aln_number,
 	batch_num = aln_number / batch_size;
 	overhang = aln_number % batch_size;
 
-	std::cout << "Num batches:\t" << batch_num << std::endl;
-	std::cout << "Overhang:\t" << overhang << std::endl;
+#ifndef NDEBUG
+
+	Logger.log(0, "OpenCL",  string("Num batches:\t" + to_string(batch_num)).c_str());
+	Logger.log(0, "OpenCL",  string("Overhang:\t" + to_string(overhang)).c_str());
+
+#endif
+
 }
 
 void OpenCLKernel::init_host_memory(size_t const & batch_size,
@@ -553,7 +605,7 @@ bool const & score) {
 void OpenCLKernel::collect_results_score(short * const scores,
 		int const & batch, size_t const & num) {
 
-	#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
+#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
 	for (int i = 0; i < num; ++i) {
 		scores[batch + i] = host_scores[i];
 	}
@@ -562,7 +614,7 @@ void OpenCLKernel::collect_results_score(short * const scores,
 void OpenCLKernel::collect_results_align(Alignment * const alignments,
 		int const & batch, size_t const & num) {
 
-	#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
+#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
 	for (int i = 0; i < num; ++i) {
 		Alignment alignment;
 		alignment.read = new char[alnLength];
@@ -584,8 +636,11 @@ void OpenCLKernel::collect_results_align(Alignment * const alignments,
 }
 
 void OpenCLKernel::check_opencl_success(char const * msg, cl_int ci_error_num) {
+
 	if (ci_error_num != CL_SUCCESS) {
-		std::cout << cl_error_to_string(ci_error_num);
+
+		Logger.log(3, "OpenCL",  cl_error_to_string(ci_error_num));
+
 		throw;
 	}
 }
