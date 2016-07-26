@@ -4,7 +4,7 @@ __kernel void score_alignment_smith_waterman(__global const char* read, __global
 	read = read + g_id * read_length * VSIZE;
 	ref = ref + g_id * ref_length * VSIZE;
 
-	results = results + g_id * VSIZE;
+	//results = results + g_id * VSIZE;
 
 	short16 max_score = v_null;
 
@@ -101,7 +101,7 @@ __kernel void score_alignment_needleman_wunsch(__global const char* read, __glob
 	read = read + g_id * read_length * VSIZE;
 	ref = ref + g_id * ref_length * VSIZE;
 
-	results = results + g_id * VSIZE;
+	//results = results + g_id * VSIZE;
 
 	short16 max_score = (short16)(SHORT_MIN);
 

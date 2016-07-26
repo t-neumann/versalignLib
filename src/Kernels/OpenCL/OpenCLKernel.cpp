@@ -55,7 +55,7 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 	std::cout << "Kernel loaded, sizes evaluated.\n";
 
 	char a;
-	std::cin >> a;
+	//std::cin >> a;
 
 	for (int batch = 0; batch < batch_num; ++batch) {
 
@@ -79,7 +79,7 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 				host_scores);
 
 		std::cout << "Buffers in place.\n";
-		std::cin >> a;
+		//std::cin >> a;
 
 		kernel.setArg(0, read_buffer);
 		kernel.setArg(1, ref_buffer);
@@ -132,7 +132,7 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 				host_scores);
 
 		std::cout << "Buffers in place.\n";
-		std::cin >> a;
+		//std::cin >> a;
 
 		kernel.setArg(0, read_buffer);
 		kernel.setArg(1, ref_buffer);
@@ -143,14 +143,14 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 		std::cout << "Work groups: " << workers << std::endl;
 		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
 
-		std::cin >> a;
+		//std::cin >> a;
 
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
 		queue.finish();
 
 		std::cout << "Finished Kernel.\n";
-		std::cin >> a;
+		//std::cin >> a;
 
 		collect_results_score(scores, batch_num * batch_size, overhang);
 
@@ -501,7 +501,7 @@ size_t OpenCLKernel::calculate_batch_size_from_memory(cl::Kernel const & kernel,
 void OpenCLKernel::partition_load(int const & aln_number,
 		size_t const & batch_size, size_t & batch_num, size_t & overhang) {
 	batch_num = aln_number / batch_size;
-	overhang = aln_number & batch_size;
+	overhang = aln_number % batch_size;
 
 	std::cout << "Num batches:\t" << batch_num << std::endl;
 	std::cout << "Overhang:\t" << overhang << std::endl;
@@ -544,6 +544,7 @@ void OpenCLKernel::collect_results_score(short * const scores,
 
 void OpenCLKernel::collect_results_align(Alignment * const alignments,
 		int const & batch, size_t const & num) {
+
 	for (int i = 0; i < num; ++i) {
 		Alignment alignment;
 		alignment.read = new char[alnLength];

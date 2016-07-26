@@ -305,6 +305,8 @@ void run_ocl_test(char const * const * const reads,
 			memcpy(ref_back, host_refs + i * max_ref_length, max_ref_length);
 			std::cout << "Ref: " << ref_back << std::endl;
 			std::cout << "Alignment score: " << host_results[i] << std::endl;
+//			char b;
+//			std::cin >> b;
 		}
 
 //		Alignment * alignment = new Alignment[batch_size];
