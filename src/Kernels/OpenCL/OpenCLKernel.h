@@ -10,6 +10,7 @@
 
 #include "AlignmentKernel.h"
 #include "AlignmentParameters.h"
+#include "AlignmentLogger.h"
 #include <iostream>
 #include <CL/cl.hpp>
 
@@ -50,9 +51,9 @@ public:
 
 		initialize_opencl_environment();
 
-		std::cout << "Successfully instantiated OpenCL Kernel." << std::endl;
-		char a;
-		std::cin >> a;
+		#ifndef NDEBUG
+		Logger.log(0, "OpenCL", "Successfully instantiated OpenCL Kernel.");
+		#endif
 
 	}
 	~OpenCLKernel() {

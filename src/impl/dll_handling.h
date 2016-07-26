@@ -15,9 +15,10 @@
 #endif
 
 #include "AlignmentParameters.h"
+#include "AlignmentLogger.h"
 
 void * DLL_function_retreival(int const dll, char const * const name, bool required = true);
 
-int const DLL_init(char const * const filename, AlignmentParameters * parameters);
+int const DLL_init(char const * const filename, AlignmentParameters * parameters, AlignmentLogger * logger);
 
 #endif /* DLL_HANDLING_H */

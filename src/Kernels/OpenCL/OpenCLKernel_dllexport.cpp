@@ -21,13 +21,17 @@ extern "C" dllexport AlignmentKernel * spawn_alignment_kernel() {
 	return kernel;
 }
 
-
 AlignmentParameters * _parameters = 0;
 
 extern "C" dllexport void set_parameters(AlignmentParameters * parameters) {
 	_parameters = parameters;
 }
 
+AlignmentLogger * _logger = 0;
+
+extern "C" dllexport void set_logger(AlignmentLogger * logger) {
+	_logger = logger;
+}
 
 extern "C" dllexport void delete_alignment_kernel(OpenCLKernel * instance) {
 	if (instance != 0) {

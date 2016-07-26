@@ -52,11 +52,6 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 
 	partition_load(aln_number, batch_size, batch_num, overhang);
 
-	std::cout << "Kernel loaded, sizes evaluated.\n";
-
-	char a;
-	//std::cin >> a;
-
 	for (int batch = 0; batch < batch_num; ++batch) {
 
 		init_host_memory(batch_size, true);
@@ -64,10 +59,8 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 		for (int i = 0; i < batch_size; ++i) {
 			memcpy(&host_reads[i * readLength], reads[batch * batch_size + i],
 					sizeof(char) * readLength);
-//			std::cout << "Read: " << reads[batch * batch_size + i] << std::endl;
 			memcpy(&host_refs[i * refLength], refs[batch * batch_size + i],
 					sizeof(char) * refLength);
-//			std::cout << "Ref: " << refs[batch * batch_size + i] << std::endl;
 		}
 
 		cl::Buffer read_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
@@ -78,18 +71,19 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size,
 				host_scores);
 
-		std::cout << "Buffers in place.\n";
-		//std::cin >> a;
-
 		kernel.setArg(0, read_buffer);
 		kernel.setArg(1, ref_buffer);
 		kernel.setArg(2, result_buffer);
 
 		int workers = batch_size / VECTORS_PER_WORKITEM;
 
-		std::cout << "Work groups: " << workers << std::endl;
+		#ifndef NDEBUG
 
-		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
+		stringstream msg;
+		msg << "Running \"" << kernel_name << "\" with " << workers + " work groups.";
+		Logger.log(0, "OpenCL", msg.str().c_str());
+
+		#endif
 
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
@@ -102,7 +96,13 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 
 		collect_results_score(scores, batch * batch_size, batch_size);
 
-		std::cout << "Finished batch " << batch << ".\n";
+		#ifndef NDEBUG
+
+		msg.str(std::string());
+		msg << "Finished batch " << batch << ".";
+		Logger.log(0, "OpenCL", msg.str().c_str());
+
+		#endif
 	}
 
 	if (overhang != 0) {
@@ -114,13 +114,9 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 			memcpy(&host_reads[remainder * readLength],
 					reads[batch_num * batch_size + remainder],
 					sizeof(char) * readLength);
-//			std::cout << "Read: " << reads[batch_num * batch_size + remainder]
-//					<< std::endl;
 			memcpy(&host_refs[remainder * refLength],
 					refs[batch_num * batch_size + remainder],
 					sizeof(char) * refLength);
-//			std::cout << "Ref: " << refs[batch_num * batch_size + remainder]
-//					<< std::endl;
 		}
 
 		cl::Buffer read_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
@@ -131,30 +127,33 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size,
 				host_scores);
 
-		std::cout << "Buffers in place.\n";
-		//std::cin >> a;
-
 		kernel.setArg(0, read_buffer);
 		kernel.setArg(1, ref_buffer);
 		kernel.setArg(2, result_buffer);
 
 		int workers = batch_size / VECTORS_PER_WORKITEM;
 
-		std::cout << "Work groups: " << workers << std::endl;
-		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
+		#ifndef NDEBUG
 
-		//std::cin >> a;
+		stringstream msg;
+		msg << "Running \"" << kernel_name << "\" with " << workers + " work groups.";
+		Logger.log(0, "OpenCL", msg.str().c_str());
+
+		#endif
 
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
 		queue.finish();
 
-		std::cout << "Finished Kernel.\n";
-		//std::cin >> a;
+		#ifndef NDEBUG
+
+		msg.str(std::string());
+		msg << "Finished overhang of " << overhang << " items.";
+		Logger.log(0, "OpenCL", msg.str().c_str());
+
+		#endif
 
 		collect_results_score(scores, batch_num * batch_size, overhang);
-
-		std::cout << "Finished overhang of " << overhang << ".\n";
 	}
 }
 
@@ -194,10 +193,8 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 		for (int i = 0; i < batch_size; ++i) {
 			memcpy(&host_reads[i * readLength], reads[batch * batch_size + i],
 					sizeof(char) * readLength);
-//			std::cout << "Read: " << reads[batch * batch_size + i] << std::endl;
 			memcpy(&host_refs[i * refLength], refs[batch * batch_size + i],
 					sizeof(char) * refLength);
-//			std::cout << "Ref: " << refs[batch * batch_size + i] << std::endl;
 		}
 
 		cl::Buffer read_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
@@ -214,8 +211,6 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
 				sizeof(short) * matrix_size * batch_size, host_matrix);
 
-		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
-
 		kernel.setArg(0, read_buffer);
 		kernel.setArg(1, ref_buffer);
 		kernel.setArg(2, result_buffer);
@@ -224,7 +219,13 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 
 		int workers = batch_size / VECTORS_PER_WORKITEM;
 
-		std::cout << "Work groups: " << workers << std::endl;
+		#ifndef NDEBUG
+
+		stringstream msg;
+		msg << "Running \"" << kernel_name << "\" with " << workers + " work groups.";
+		Logger.log(0, "OpenCL", msg.str().c_str());
+
+		#endif
 
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
@@ -232,7 +233,13 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 
 		collect_results_align(alignments, batch * batch_size, batch_size);
 
-		std::cout << "Finished batch " << batch << ".\n";
+		#ifndef NDEBUG
+
+		msg.str(std::string());
+		msg << "Finished batch " << batch << ".";
+		Logger.log(0, "OpenCL", msg.str().c_str());
+
+		#endif
 	}
 
 	if (overhang != 0) {
@@ -244,13 +251,9 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 			memcpy(&host_reads[remainder * readLength],
 					reads[batch_num * batch_size + remainder],
 					sizeof(char) * readLength);
-//			std::cout << "Read: " << reads[batch_num * batch_size + remainder]
-//					<< std::endl;
 			memcpy(&host_refs[remainder * refLength],
 					refs[batch_num * batch_size + remainder],
 					sizeof(char) * refLength);
-//			std::cout << "Ref: " << refs[batch_num * batch_size + remainder]
-//					<< std::endl;
 		}
 
 		cl::Buffer read_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
@@ -267,8 +270,6 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
 				sizeof(short) * matrix_size * batch_size, host_matrix);
 
-		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
-
 		kernel.setArg(0, read_buffer);
 		kernel.setArg(1, ref_buffer);
 		kernel.setArg(2, result_buffer);
@@ -277,7 +278,13 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 
 		int workers = batch_size / VECTORS_PER_WORKITEM;
 
-		std::cout << "Work groups: " << workers << std::endl;
+		#ifndef NDEBUG
+
+		stringstream msg;
+		msg << "Running \"" << kernel_name << "\" with " << workers + " work groups.";
+		Logger.log(0, "OpenCL", msg.str().c_str());
+
+		#endif
 
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
@@ -285,7 +292,13 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 
 		collect_results_align(alignments, batch_num * batch_size, overhang);
 
-		std::cout << "Finished overhang of " << overhang << ".\n";
+		#ifndef NDEBUG
+
+		msg.str(std::string());
+		msg << "Finished overhang of " << overhang << " items.";
+		Logger.log(0, "OpenCL", msg.str().c_str());
+
+		#endif
 	}
 }
 
@@ -310,32 +323,30 @@ std::string get_device_type(cl_int const & device_type) {
 	return device_type == CL_DEVICE_TYPE_GPU ? "GPU" : "CPU";
 }
 
-void print_device_info(cl::Device const & device) {
-	std::cout << device.getInfo<CL_DEVICE_NAME>() << "\n\n";
-	std::cout << "\tType: " << get_device_type(device.getInfo<CL_DEVICE_TYPE>())
-			<< std::endl;
-	std::cout << "\tVendor: " << device.getInfo<CL_DEVICE_VENDOR>()
-			<< std::endl;
-	std::cout << "\tMax Compute Units: "
-			<< device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << std::endl;
-	std::cout << "\tGlobal Memory: "
-			<< device.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>() << std::endl;
-	std::cout << "\tMax Clock Frequency: "
-			<< device.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>() << std::endl;
-	std::cout << "\tMax Allocateable Memory: "
-			<< device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>() << std::endl;
-	std::cout << "\tLocal Memory: "
-			<< device.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>() << std::endl;
-	std::cout << "\tAvailable: " << device.getInfo< CL_DEVICE_AVAILABLE>()
-			<< std::endl;
+char const * get_device_info(cl::Device const & device) {
+
+	stringstream info;
+		info << device.getInfo<CL_DEVICE_NAME>() << "\n\n"
+			 << "\tType: " << get_device_type(device.getInfo<CL_DEVICE_TYPE>()) << std::endl
+			 << "\tVendor: " << device.getInfo<CL_DEVICE_VENDOR>() << std::endl
+			 << "\tMax Compute Units: " << device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << std::endl
+			 << "\tGlobal Memory: " << device.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>() << std::endl
+			 << "\tMax Clock Frequency: " << device.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>() << std::endl
+			 << "\tMax Allocateable Memory: " << device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>() << std::endl
+			 << "\tLocal Memory: " << device.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>() << std::endl
+			 << "\tAvailable: " << device.getInfo< CL_DEVICE_AVAILABLE>() << std::endl;
+
+	return info.str().c_str();
 }
 
 void present_devices(std::vector<cl::Device> & all_devices) {
-	std::cout << "Available devices:" << std::endl;
+
+
+	Logger.log(0, "OpenCL", "Available devices:");
 
 	for (std::vector<cl::Device>::iterator i = all_devices.begin();
 			i != all_devices.end(); ++i) {
-		print_device_info(*i);
+		Logger.log(0, "OpenCL", get_device_info(*i));
 	}
 }
 
@@ -403,7 +414,11 @@ cl::Device OpenCLKernel::setup_opencl_device(
 			&all_devices);
 	check_opencl_success("OpenCL device query failed: ", cl_error_num);
 
+	#ifndef NDEBUG
+
 	present_devices(all_devices);
+
+	#endif
 
 	std::vector<cl::Device> cpu_devices;
 	cl_error_num = default_platform.getDevices(device_type, &cpu_devices);
@@ -435,22 +450,22 @@ std::vector<cl::Device> OpenCLKernel::fission_opencl_device(
 		return subdevices;
 	}
 
-// Calculate number of used cores/hyperthreading threads
-// Always only use 3 quarters for computation and leave 1 quarter for background processes
+	// Calculate number of used cores/hyperthreading threads
+	// Always only use maximum of 3 quarters for computation and leave 1 quarter for background processes
 	int max_devices = device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
 	int fission = max_devices / 4 * 3;
+	fission = std::max(std::min(fission, Parameters.param_int("num_threads")), 1);
 
-// Partition CPU
+	// Partition CPU
 	cl_device_partition_property props[4];
 	props[0] = CL_DEVICE_PARTITION_BY_COUNTS;
-//props[1] = std::max(fission, 1);
-	props[1] = 1;
+	props[1] = fission;
 	props[2] = CL_DEVICE_PARTITION_BY_COUNTS_LIST_END;
 	props[3] = 0;
 
 	device.createSubDevices(props, &subdevices);
 
-	std::cout << "Created " << subdevices.size() << " subdevices.\n";
+	std::cout << "Created " << subdevices.size() << " subdevices with " << fission << " cores/threads.\n";
 
 	return subdevices;
 }
@@ -479,7 +494,7 @@ size_t OpenCLKernel::calculate_batch_size_from_memory(cl::Kernel const & kernel,
 				+ sizeof(short) * matrix_size;
 	}
 
-	size_t const _1MB = 1024 * 10;
+	size_t const _1MB = 1024 * 1024;
 
 	std::cout << "1MB in bytes:\t" << _1MB << std::endl;
 	std::cout << "Sizeof Alignment in bytes:\t" << _one_alignment << std::endl;
@@ -537,6 +552,8 @@ bool const & score) {
 
 void OpenCLKernel::collect_results_score(short * const scores,
 		int const & batch, size_t const & num) {
+
+	#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
 	for (int i = 0; i < num; ++i) {
 		scores[batch + i] = host_scores[i];
 	}
@@ -545,6 +562,7 @@ void OpenCLKernel::collect_results_score(short * const scores,
 void OpenCLKernel::collect_results_align(Alignment * const alignments,
 		int const & batch, size_t const & num) {
 
+	#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
 	for (int i = 0; i < num; ++i) {
 		Alignment alignment;
 		alignment.read = new char[alnLength];
