@@ -171,10 +171,10 @@ void run_ocl_test(char const * const * const reads,
 
 	//alternative way to run the kernel
 	cl::Kernel kernel_print = cl::Kernel(program,
-			"calc_alignment_needleman_wunsch");
+			"score_alignment_needleman_wunsch");
 
 	const size_t max_work_items = kernel_print.getWorkGroupInfo<
-			CL_KERNEL_WORK_GROUP_SIZE>(default_device);
+	CL_KERNEL_WORK_GROUP_SIZE>(default_device);
 
 	std::cout << "Kernel group size: "
 			<< kernel_print.getWorkGroupInfo<CL_KERNEL_WORK_GROUP_SIZE>(
@@ -192,13 +192,13 @@ void run_ocl_test(char const * const * const reads,
 	const int aln_length = max_ref_length + max_read_length;
 	const int matrix_size = (max_read_length + 1) * (max_ref_length + 1);
 
-	size_t const _500MB = 1024 * 1024;
+	size_t const _500MB = 1024 * 10;
 	//size_t const _500MB = 1024 * 1024 * 500;
-//	size_t const _one_alignment = sizeof(char) * max_read_length
-//			+ sizeof(char) * max_ref_length + sizeof(short) * 2;
 	size_t const _one_alignment = sizeof(char) * max_read_length
-			+ sizeof(char) * max_ref_length + sizeof(char) * aln_length * 2
-			+ sizeof(short) * 2 + sizeof(short) * matrix_size;
+			+ sizeof(char) * max_ref_length + sizeof(short) * 2;
+//	size_t const _one_alignment = sizeof(char) * max_read_length
+//			+ sizeof(char) * max_ref_length + sizeof(char) * aln_length * 2
+//			+ sizeof(short) * 2 + sizeof(short) * matrix_size;
 
 	std::cout << "500MB in bytes:\t" << _500MB << std::endl;
 	std::cout << "one in bytes:\t" << _one_alignment << std::endl;
@@ -225,10 +225,10 @@ void run_ocl_test(char const * const * const reads,
 
 	char * host_reads = new char[batch_size * max_read_length];
 	char * host_refs = new char[batch_size * max_ref_length];
-	//		short * host_results = new short[batch_size]();
-	char * host_results = new char[aln_length * 2 * batch_size];
-	short * host_indices = new short[2 * batch_size];
-	short * host_matrix = new short[matrix_size * batch_size];
+	short * host_results = new short[batch_size]();
+//	char * host_results = new char[aln_length * 2 * batch_size];
+//	short * host_indices = new short[2 * batch_size];
+//	short * host_matrix = new short[matrix_size * batch_size];
 
 	char a;
 	std::cin >> a;
@@ -237,9 +237,10 @@ void run_ocl_test(char const * const * const reads,
 
 		memset(host_reads, 0, sizeof(char) * batch_size * max_read_length);
 		memset(host_refs, 0, sizeof(char) * batch_size * max_ref_length);
-		memset(host_results, 0, sizeof(char) * batch_size * aln_length * 2);
-		memset(host_indices, 0, sizeof(short) * batch_size * 2);
-		memset(host_matrix, 0, sizeof(short) * matrix_size * batch_size);
+		memset(host_results, 0, sizeof(short) * batch_size);
+//		memset(host_results, 0, sizeof(char) * batch_size * aln_length * 2);
+//		memset(host_indices, 0, sizeof(short) * batch_size * 2);
+//		memset(host_matrix, 0, sizeof(short) * matrix_size * batch_size);
 
 		for (int i = 0; i < batch_size; ++i) {
 			memcpy(&host_reads[i * max_read_length],
@@ -255,18 +256,18 @@ void run_ocl_test(char const * const * const reads,
 				sizeof(char) * batch_size * max_read_length, host_reads);
 		cl::Buffer ref_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
 				sizeof(char) * batch_size * max_ref_length, host_refs);
-		//		cl::Buffer result_buffer(context,
-		//		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size,
-		//				host_results);
 		cl::Buffer result_buffer(context,
-		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
-				sizeof(char) * aln_length * 2 * batch_size, host_results);
-		cl::Buffer index_buffer(context,
-		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size * 2,
-				host_indices);
-		cl::Buffer matrix_buffer(context,
-		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
-				sizeof(short) * matrix_size * batch_size, host_matrix);
+		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size,
+				host_results);
+//		cl::Buffer result_buffer(context,
+//		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+//				sizeof(char) * aln_length * 2 * batch_size, host_results);
+//		cl::Buffer index_buffer(context,
+//		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size * 2,
+//				host_indices);
+//		cl::Buffer matrix_buffer(context,
+//		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+//				sizeof(short) * matrix_size * batch_size, host_matrix);
 
 		//printf("Reads %.*s\n", max_read_length, host_reads);
 		//printf("Refs %.*s\n", max_ref_length, host_refs);
@@ -285,8 +286,8 @@ void run_ocl_test(char const * const * const reads,
 		kernel_print.setArg(0, read_buffer);
 		kernel_print.setArg(1, ref_buffer);
 		kernel_print.setArg(2, result_buffer);
-		kernel_print.setArg(3, index_buffer);
-		kernel_print.setArg(4, matrix_buffer);
+//		kernel_print.setArg(3, index_buffer);
+//		kernel_print.setArg(4, matrix_buffer);
 		int stuff = batch_size / 16;
 		std::cout << "Work groups: " << stuff << std::endl;
 		queue.enqueueNDRangeKernel(kernel_print, cl::NullRange,
@@ -294,8 +295,6 @@ void run_ocl_test(char const * const * const reads,
 		queue.finish();
 		std::cout << "Finished Kernel.\n";
 		//std::cin >> a;
-
-		Alignment * alignment = new Alignment[batch_size];
 
 		for (int i = 0; i < batch_size; ++i) {
 			char * read_back = new char[max_read_length];
@@ -305,33 +304,46 @@ void run_ocl_test(char const * const * const reads,
 			char * ref_back = new char[max_ref_length];
 			memcpy(ref_back, host_refs + i * max_ref_length, max_ref_length);
 			std::cout << "Ref: " << ref_back << std::endl;
-			//std::cout << "Alignment score: " << host_results[i] << std::endl;
-			//std::cin >> a;
-			alignment[i].read = new char[aln_length];
-			alignment[i].ref = new char[aln_length];
-
-			memcpy(alignment[i].read, host_results + 2 * i * aln_length,
-					aln_length * sizeof(char));
-			memcpy(alignment[i].ref,
-					host_results + 2 * i * aln_length + aln_length,
-					aln_length * sizeof(char));
-
-			alignment[i].readStart = host_indices[2 * i];
-			alignment[i].refStart = host_indices[2 * i + 1];
-
-			alignment[i].readEnd = aln_length - 1;
-			alignment[i].refEnd = aln_length - 1;
-
-			std::cout << "==================" << std::endl << "\"";
-			std::cout << "Start:\t" << host_indices[2 * i] << "\t"
-					<< alignment[i].read + alignment[i].readStart;
-			std::cout << "\"" << std::endl << "\"";
-			std::cout << "End:\t" << host_indices[2 * i + 1] << "\t"
-					<< alignment[i].ref + alignment[i].refStart;
-			std::cout << "\"" << std::endl << "==================" << std::endl;
-			//std::cin >> a;
-
+			std::cout << "Alignment score: " << host_results[i] << std::endl;
 		}
+
+//		Alignment * alignment = new Alignment[batch_size];
+//
+//		for (int i = 0; i < batch_size; ++i) {
+//			char * read_back = new char[max_read_length];
+//			memcpy(read_back, host_reads + i * max_read_length,
+//					max_read_length);
+//			std::cout << "Read: " << read_back << std::endl;
+//			char * ref_back = new char[max_ref_length];
+//			memcpy(ref_back, host_refs + i * max_ref_length, max_ref_length);
+//			std::cout << "Ref: " << ref_back << std::endl;
+//			//std::cout << "Alignment score: " << host_results[i] << std::endl;
+//			//std::cin >> a;
+//			alignment[i].read = new char[aln_length];
+//			alignment[i].ref = new char[aln_length];
+//
+//			memcpy(alignment[i].read, host_results + 2 * i * aln_length,
+//					aln_length * sizeof(char));
+//			memcpy(alignment[i].ref,
+//					host_results + 2 * i * aln_length + aln_length,
+//					aln_length * sizeof(char));
+//
+//			alignment[i].readStart = host_indices[2 * i];
+//			alignment[i].refStart = host_indices[2 * i + 1];
+//
+//			alignment[i].readEnd = aln_length - 1;
+//			alignment[i].refEnd = aln_length - 1;
+//
+//			std::cout << "==================" << std::endl << "\"";
+//			std::cout << "Start:\t" << host_indices[2 * i] << "\t"
+//					<< alignment[i].read + alignment[i].readStart;
+//			std::cout << "\"" << std::endl << "\"";
+//			std::cout << "End:\t" << host_indices[2 * i + 1] << "\t"
+//					<< alignment[i].ref + alignment[i].refStart;
+//			std::cout << "\"" << std::endl << "==================" << std::endl;
+//			//std::cin >> a;
+//
+//		}
 	}
 
 	if (overhang != 0) {
@@ -340,9 +352,10 @@ void run_ocl_test(char const * const * const reads,
 
 		memset(host_reads, 0, sizeof(char) * batch_size * max_read_length);
 		memset(host_refs, 0, sizeof(char) * batch_size * max_ref_length);
-		memset(host_results, 0, sizeof(char) * batch_size * aln_length * 2);
-		memset(host_indices, 0, sizeof(short) * batch_size * 2);
-		memset(host_matrix, 0, sizeof(short) * matrix_size * batch_size);
+		memset(host_results, 0, sizeof(short) * batch_size);
+		//memset(host_results, 0, sizeof(char) * batch_size * aln_length * 2);
+		//memset(host_indices, 0, sizeof(short) * batch_size * 2);
+		//memset(host_matrix, 0, sizeof(short) * matrix_size * batch_size);
 
 		for (int remainder = 0; remainder < overhang; ++remainder) {
 
@@ -362,18 +375,18 @@ void run_ocl_test(char const * const * const reads,
 				sizeof(char) * batch_size * max_read_length, host_reads);
 		cl::Buffer ref_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
 				sizeof(char) * batch_size * max_ref_length, host_refs);
-		//		cl::Buffer result_buffer(context,
-		//		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size,
-		//				host_results);
 		cl::Buffer result_buffer(context,
-		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
-				sizeof(char) * aln_length * 2 * batch_size, host_results);
-		cl::Buffer index_buffer(context,
-		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size * 2,
-				host_indices);
-		cl::Buffer matrix_buffer(context,
-		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
-				sizeof(short) * matrix_size * batch_size, host_matrix);
+		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size,
+				host_results);
+//		cl::Buffer result_buffer(context,
+//		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+//				sizeof(char) * aln_length * 2 * batch_size, host_results);
+//		cl::Buffer index_buffer(context,
+//		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size * 2,
+//				host_indices);
+//		cl::Buffer matrix_buffer(context,
+//		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+//				sizeof(short) * matrix_size * batch_size, host_matrix);
 
 		std::cout << "Running \"calc_alignment_smith_waterman\" Kernel...\n";
 		//alternative way to run the kernel
@@ -381,16 +394,14 @@ void run_ocl_test(char const * const * const reads,
 		kernel_print.setArg(0, read_buffer);
 		kernel_print.setArg(1, ref_buffer);
 		kernel_print.setArg(2, result_buffer);
-		kernel_print.setArg(3, index_buffer);
-		kernel_print.setArg(4, matrix_buffer);
+//		kernel_print.setArg(3, index_buffer);
+//		kernel_print.setArg(4, matrix_buffer);
 		int stuff = batch_size / 16;
 		std::cout << "Running with " << stuff << " workers.\n";
 
 		queue.enqueueNDRangeKernel(kernel_print, cl::NullRange,
 				cl::NDRange(stuff), cl::NullRange);
 		queue.finish();
-
-		Alignment * alignment = new Alignment[overhang];
 
 		for (int i = 0; i < overhang; ++i) {
 			char * read_back = new char[max_read_length];
@@ -400,31 +411,44 @@ void run_ocl_test(char const * const * const reads,
 			char * ref_back = new char[max_ref_length];
 			memcpy(ref_back, host_refs + i * max_ref_length, max_ref_length);
 			std::cout << "Ref: " << ref_back << std::endl;
-//			std::cout << "Alignment score: " << host_results[i] << std::endl;
-			alignment[i].read = new char[aln_length];
-			alignment[i].ref = new char[aln_length];
-
-			memcpy(alignment[i].read, host_results + 2 * i * aln_length,
-					aln_length * sizeof(char));
-			memcpy(alignment[i].ref,
-					host_results + 2 * i * aln_length + aln_length,
-					aln_length * sizeof(char));
-
-			alignment[i].readStart = host_indices[2 * i];
-			alignment[i].refStart = host_indices[2 * i + 1];
-
-			alignment[i].readEnd = aln_length - 1;
-			alignment[i].refEnd = aln_length - 1;
-
-			std::cout << "==================" << std::endl << "\"";
-			std::cout << "Start:\t" << host_indices[2 * i] << "\t"
-					<< alignment[i].read + alignment[i].readStart;
-			std::cout << "\"" << std::endl << "\"";
-			std::cout << "End:\t" << host_indices[2 * i + 1] << "\t"
-					<< alignment[i].ref + alignment[i].refStart;
-			std::cout << "\"" << std::endl << "==================" << std::endl;
-			//std::cin >> a;
-
+			std::cout << "Alignment score: " << host_results[i] << std::endl;
 		}
+
+//		Alignment * alignment = new Alignment[overhang];
+//
+//		for (int i = 0; i < overhang; ++i) {
+//			char * read_back = new char[max_read_length];
+//			memcpy(read_back, host_reads + i * max_read_length,
+//					max_read_length);
+//			std::cout << "Read: " << read_back << std::endl;
+//			char * ref_back = new char[max_ref_length];
+//			memcpy(ref_back, host_refs + i * max_ref_length, max_ref_length);
+//			std::cout << "Ref: " << ref_back << std::endl;
+////			std::cout << "Alignment score: " << host_results[i] << std::endl;
+//			alignment[i].read = new char[aln_length];
+//			alignment[i].ref = new char[aln_length];
+//
+//			memcpy(alignment[i].read, host_results + 2 * i * aln_length,
+//					aln_length * sizeof(char));
+//			memcpy(alignment[i].ref,
+//					host_results + 2 * i * aln_length + aln_length,
+//					aln_length * sizeof(char));
+//
+//			alignment[i].readStart = host_indices[2 * i];
+//			alignment[i].refStart = host_indices[2 * i + 1];
+//
+//			alignment[i].readEnd = aln_length - 1;
+//			alignment[i].refEnd = aln_length - 1;
+//
+//			std::cout << "==================" << std::endl << "\"";
+//			std::cout << "Start:\t" << host_indices[2 * i] << "\t"
+//					<< alignment[i].read + alignment[i].readStart;
+//			std::cout << "\"" << std::endl << "\"";
+//			std::cout << "End:\t" << host_indices[2 * i + 1] << "\t"
+//					<< alignment[i].ref + alignment[i].refStart;
+//			std::cout << "\"" << std::endl << "==================" << std::endl;
+//			//std::cin >> a;
+//
+//		}
 	}
 }

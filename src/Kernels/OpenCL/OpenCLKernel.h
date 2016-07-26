@@ -10,7 +10,7 @@
 
 #include "AlignmentKernel.h"
 #include "AlignmentParameters.h"
-
+#include <iostream>
 #include <CL/cl.hpp>
 
 #define VECTORS_PER_WORKITEM 16
@@ -49,6 +49,11 @@ public:
 		matrix_size = (readLength + 1) * (refLength + 1);
 
 		initialize_opencl_environment();
+
+		std::cout << "Successfully instantiated OpenCL Kernel." << std::endl;
+		char a;
+		std::cin >> a;
+
 	}
 	~OpenCLKernel() {
 		if (host_reads != 0)

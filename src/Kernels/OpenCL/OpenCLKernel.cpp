@@ -52,6 +52,11 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 
 	partition_load(aln_number, batch_size, batch_num, overhang);
 
+	std::cout << "Kernel loaded, sizes evaluated.\n";
+
+	char a;
+	std::cin >> a;
+
 	for (int batch = 0; batch < batch_num; ++batch) {
 
 		init_host_memory(batch_size, true);
@@ -73,7 +78,8 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size,
 				host_scores);
 
-		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
+		std::cout << "Buffers in place.\n";
+		std::cin >> a;
 
 		kernel.setArg(0, read_buffer);
 		kernel.setArg(1, ref_buffer);
@@ -83,9 +89,16 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 
 		std::cout << "Work groups: " << workers << std::endl;
 
+		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
+
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
-		queue.finish();
+
+		cl_int cl_error_num = CL_SUCCESS;
+
+		cl_error_num = queue.finish();
+
+		check_opencl_success("Error in Kernel execution: ", cl_error_num);
 
 		collect_results_score(scores, batch * batch_size, batch_size);
 
@@ -118,7 +131,8 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size,
 				host_scores);
 
-		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
+		std::cout << "Buffers in place.\n";
+		std::cin >> a;
 
 		kernel.setArg(0, read_buffer);
 		kernel.setArg(1, ref_buffer);
@@ -127,10 +141,16 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 		int workers = batch_size / VECTORS_PER_WORKITEM;
 
 		std::cout << "Work groups: " << workers << std::endl;
+		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
+
+		std::cin >> a;
 
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
 		queue.finish();
+
+		std::cout << "Finished Kernel.\n";
+		std::cin >> a;
 
 		collect_results_score(scores, batch_num * batch_size, overhang);
 
@@ -174,10 +194,10 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 		for (int i = 0; i < batch_size; ++i) {
 			memcpy(&host_reads[i * readLength], reads[batch * batch_size + i],
 					sizeof(char) * readLength);
-			std::cout << "Read: " << reads[batch * batch_size + i] << std::endl;
+//			std::cout << "Read: " << reads[batch * batch_size + i] << std::endl;
 			memcpy(&host_refs[i * refLength], refs[batch * batch_size + i],
 					sizeof(char) * refLength);
-			std::cout << "Ref: " << refs[batch * batch_size + i] << std::endl;
+//			std::cout << "Ref: " << refs[batch * batch_size + i] << std::endl;
 		}
 
 		cl::Buffer read_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
@@ -224,13 +244,13 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 			memcpy(&host_reads[remainder * readLength],
 					reads[batch_num * batch_size + remainder],
 					sizeof(char) * readLength);
-			std::cout << "Read: " << reads[batch_num * batch_size + remainder]
-					<< std::endl;
+//			std::cout << "Read: " << reads[batch_num * batch_size + remainder]
+//					<< std::endl;
 			memcpy(&host_refs[remainder * refLength],
 					refs[batch_num * batch_size + remainder],
 					sizeof(char) * refLength);
-			std::cout << "Ref: " << refs[batch_num * batch_size + remainder]
-					<< std::endl;
+//			std::cout << "Ref: " << refs[batch_num * batch_size + remainder]
+//					<< std::endl;
 		}
 
 		cl::Buffer read_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
@@ -281,9 +301,6 @@ void OpenCLKernel::initialize_opencl_environment() {
 
 	device = sub_devices[0];
 	context = setup_context(device);
-	std::cout << cpu_device.getInfo<CL_DEVICE_NAME>() << "\n\n";
-	char a;
-	std::cin >> a;
 	program = setup_program(context);
 
 	queue = setup_queue(context, device);
@@ -462,7 +479,7 @@ size_t OpenCLKernel::calculate_batch_size_from_memory(cl::Kernel const & kernel,
 				+ sizeof(short) * matrix_size;
 	}
 
-	size_t const _1MB = 1024 * 1024;
+	size_t const _1MB = 1024 * 10;
 
 	std::cout << "1MB in bytes:\t" << _1MB << std::endl;
 	std::cout << "Sizeof Alignment in bytes:\t" << _one_alignment << std::endl;

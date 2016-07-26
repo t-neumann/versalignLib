@@ -77,7 +77,7 @@ mark_as_advanced(
   
 INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIR})
 
-#add_library(testOCL STATIC ${PROJECT_BINARY_DIR}/opencl_definitions.h ${PROJECT_BINARY_DIR}/scoring_kernels.h ${PROJECT_BINARY_DIR}/alignment_kernels.h ocl_testing.cpp)
+add_library(testOCL STATIC ${PROJECT_BINARY_DIR}/opencl_definitions.h ${PROJECT_BINARY_DIR}/scoring_kernels.h ${PROJECT_BINARY_DIR}/alignment_kernels.h ocl_testing.cpp)
 add_library(OpenCLKernel SHARED ${PROJECT_BINARY_DIR}/opencl_definitions.h ${PROJECT_BINARY_DIR}/scoring_kernels.h ${PROJECT_BINARY_DIR}/alignment_kernels.h OpenCLKernel.cpp OpenCLKernel_dllexport.cpp)
 target_link_libraries(OpenCLKernel ${OPENCL_LIBRARY})
-#target_link_libraries(testOCL ${OPENCL_LIBRARY})
+target_link_libraries(testOCL ${OPENCL_LIBRARY})

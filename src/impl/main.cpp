@@ -12,11 +12,11 @@
 //#include "Kernels/AVX-SSE/SSEKernel.h"
 #include "Kernels/AVX-SSE/AVXKernel.h"
 #include "util/versalignUtil.h"
-//#include "Kernels/OpenCL/ocl_testing.h"
+#include "Kernels/OpenCL/ocl_testing.h"
 #include "Timer/Timer.h"
 #include "AVXSupportChecker.h"
 #include "FastaProvider.h"
-//#include "Kernels/OpenCL/OpenCLKernel.h"
+#include "Kernels/OpenCL/OpenCLKernel.h"
 #include <iostream>
 #include <fstream>
 
@@ -243,8 +243,6 @@ int main(int argc, char *argv[]) {
 
 	//run_ocl_test(reads, refs, seqNumber, max_read_length, max_ref_length);
 
-	//return 0;
-
 	parameters.read_length = max_read_length;
 	parameters.ref_length = max_ref_length;
 	parameters.num_threads = 1;
@@ -274,19 +272,38 @@ int main(int argc, char *argv[]) {
 
 	int dll = DLL_init(libPath.c_str(), &parameters);
 
+	OpenCLKernel * ocl = new OpenCLKernel();
+
 	fp_load_alignment_kernel load_alignment_kernel = (fp_load_alignment_kernel) DLL_function_retreival(dll, "spawn_alignment_kernel");
 	fp_delete_alignment_kernel delete_alignment_kernel = (fp_delete_alignment_kernel) DLL_function_retreival(dll, "delete_alignment_kernel");
 	fp_set_parameters set_parameters = (fp_set_parameters) DLL_function_retreival(dll,"set_parameters");
 
 	AlignmentKernel * plain_kernel = 0;
 
-	plain_kernel = load_alignment_kernel();
+	//plain_kernel = load_alignment_kernel();
 
 	std::cout << "Alignment kernel instantiated.\n";
 	std::cout << "Running with " << parameters.num_threads << " threads.\n";
 
 	short * scores = new short[seqNumber]();
 	Alignment * alignments = new Alignment[seqNumber]();
+
+	//run_ocl_test(reads, refs, seqNumber, max_read_length, max_ref_length);
+
+	ocl->score_alignments(0, seqNumber, reads, refs, scores);
+//	ocl->compute_alignments(0, seqNumber, reads, refs, alignments);
+
+	for (int i = 0; i < seqNumber; ++i) {
+		std::cout << reads[i] << std::endl;
+		std::cout << refs[i] << std::endl;
+		std::cout << scores[i] << std::endl;
+	}
+
+	//plain_kernel->score_alignments(0, seqNumber, reads,refs, scores);
+
+
+	return 0;
+
 
 	Timer timer;
 
