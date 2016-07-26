@@ -5,7 +5,7 @@ add_executable (Versalign main.cpp dll_handling.cpp AVXSupportChecker.cpp FastaP
 #message(STATUS "Linking plain Kernel")
 #target_link_libraries (Versalign plainKernel)
 #message(STATUS "Linking openCL Kernel")
-#target_link_libraries (Versalign openCLKernel)
+#target_link_libraries (Versalign testOCL)
 #message(STATUS "Linking SSE Kernel")
 #target_link_libraries (Versalign SSEKernel)
 #message(STATUS "Linking AVX Kernel")

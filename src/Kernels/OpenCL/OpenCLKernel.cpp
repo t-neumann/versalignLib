@@ -59,10 +59,10 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 		for (int i = 0; i < batch_size; ++i) {
 			memcpy(&host_reads[i * readLength], reads[batch * batch_size + i],
 					sizeof(char) * readLength);
-			std::cout << "Read: " << reads[batch * batch_size + i] << std::endl;
+//			std::cout << "Read: " << reads[batch * batch_size + i] << std::endl;
 			memcpy(&host_refs[i * refLength], refs[batch * batch_size + i],
 					sizeof(char) * refLength);
-			std::cout << "Ref: " << refs[batch * batch_size + i] << std::endl;
+//			std::cout << "Ref: " << refs[batch * batch_size + i] << std::endl;
 		}
 
 		cl::Buffer read_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
@@ -86,6 +86,8 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
 		queue.finish();
+
+		collect_results_score(scores, batch * batch_size, batch_size);
 
 		std::cout << "Finished batch " << batch << ".\n";
 	}
@@ -99,13 +101,13 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 			memcpy(&host_reads[remainder * readLength],
 					reads[batch_num * batch_size + remainder],
 					sizeof(char) * readLength);
-			std::cout << "Read: " << reads[batch_num * batch_size + remainder]
-					<< std::endl;
+//			std::cout << "Read: " << reads[batch_num * batch_size + remainder]
+//					<< std::endl;
 			memcpy(&host_refs[remainder * refLength],
 					refs[batch_num * batch_size + remainder],
 					sizeof(char) * refLength);
-			std::cout << "Ref: " << refs[batch_num * batch_size + remainder]
-					<< std::endl;
+//			std::cout << "Ref: " << refs[batch_num * batch_size + remainder]
+//					<< std::endl;
 		}
 
 		cl::Buffer read_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
@@ -129,6 +131,8 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
 		queue.finish();
+
+		collect_results_score(scores, batch_num * batch_size, overhang);
 
 		std::cout << "Finished overhang of " << overhang << ".\n";
 	}
@@ -181,13 +185,13 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 		cl::Buffer ref_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
 				sizeof(char) * batch_size * refLength, host_refs);
 		cl::Buffer result_buffer(context,
-				CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
 				sizeof(char) * alnLength * 2 * batch_size, host_alignments);
 		cl::Buffer index_buffer(context,
-				CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
-				sizeof(short) * batch_size * 2, host_indices);
+		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size * 2,
+				host_indices);
 		cl::Buffer matrix_buffer(context,
-				CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
 				sizeof(short) * matrix_size * batch_size, host_matrix);
 
 		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
@@ -205,6 +209,8 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
 		queue.finish();
+
+		collect_results_align(alignments, batch * batch_size, batch_size);
 
 		std::cout << "Finished batch " << batch << ".\n";
 	}
@@ -232,13 +238,13 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 		cl::Buffer ref_buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
 				sizeof(char) * batch_size * refLength, host_refs);
 		cl::Buffer result_buffer(context,
-				CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
 				sizeof(char) * alnLength * 2 * batch_size, host_alignments);
 		cl::Buffer index_buffer(context,
-				CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
-				sizeof(short) * batch_size * 2, host_indices);
+		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(short) * batch_size * 2,
+				host_indices);
 		cl::Buffer matrix_buffer(context,
-				CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
+		CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR,
 				sizeof(short) * matrix_size * batch_size, host_matrix);
 
 		std::cout << "Running \"" << kernel_name << "\" Kernel...\n";
@@ -256,6 +262,8 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(workers),
 				cl::NullRange);
 		queue.finish();
+
+		collect_results_align(alignments, batch_num * batch_size, overhang);
 
 		std::cout << "Finished overhang of " << overhang << ".\n";
 	}
@@ -324,7 +332,7 @@ cl::Program OpenCLKernel::setup_program(cl::Context const & context) {
 
 	cl::Program::Sources sources;
 
-	// Load Kernel
+// Load Kernel
 	std::stringstream source_loader;
 	source_loader << opencl_definitions << scoring_kernels << alignment_kernels;
 
@@ -342,15 +350,8 @@ cl::Program OpenCLKernel::setup_program(cl::Context const & context) {
 
 	cl::Program program(context, sources);
 
-	std::cout << "Only thing left: Building the program." << std::endl;
-	char a;
-	std::cin >> a;
-
 	cl_error_num = program.build(compilerDefines.str().c_str());
 	check_opencl_success("Error building OpenCL program: ", cl_error_num);
-
-	std::cout << "Done: Building the program." << std::endl;
-	std::cin >> a;
 
 	return program;
 }
@@ -365,7 +366,7 @@ cl::Device OpenCLKernel::setup_opencl_device(
 
 	cl_int cl_error_num = CL_SUCCESS;
 
-	//get all platforms (drivers)
+//get all platforms (drivers)
 	std::vector<cl::Platform> all_platforms;
 	cl_error_num = cl::Platform::get(&all_platforms);
 	check_opencl_success("OpenCL platform query failed: ", cl_error_num);
@@ -379,7 +380,7 @@ cl::Device OpenCLKernel::setup_opencl_device(
 	std::cout << "Using platform: "
 			<< default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
 
-	//get default device of the default platform
+//get default device of the default platform
 	std::vector<cl::Device> all_devices;
 	cl_error_num = default_platform.getDevices(CL_DEVICE_TYPE_ALL,
 			&all_devices);
@@ -417,15 +418,15 @@ std::vector<cl::Device> OpenCLKernel::fission_opencl_device(
 		return subdevices;
 	}
 
-	// Calculate number of used cores/hyperthreading threads
-	// Always only use 3 quarters for computation and leave 1 quarter for background processes
+// Calculate number of used cores/hyperthreading threads
+// Always only use 3 quarters for computation and leave 1 quarter for background processes
 	int max_devices = device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
 	int fission = max_devices / 4 * 3;
 
-	// Partition CPU
+// Partition CPU
 	cl_device_partition_property props[4];
 	props[0] = CL_DEVICE_PARTITION_BY_COUNTS;
-	//props[1] = std::max(fission, 1);
+//props[1] = std::max(fission, 1);
 	props[1] = 1;
 	props[2] = CL_DEVICE_PARTITION_BY_COUNTS_LIST_END;
 	props[3] = 0;
@@ -490,7 +491,7 @@ void OpenCLKernel::partition_load(int const & aln_number,
 }
 
 void OpenCLKernel::init_host_memory(size_t const & batch_size,
-		bool const & score) {
+bool const & score) {
 
 	if (host_reads == 0)
 		host_reads = new char[batch_size * readLength];
@@ -514,6 +515,35 @@ void OpenCLKernel::init_host_memory(size_t const & batch_size,
 		memset(host_alignments, 0, sizeof(char) * batch_size * alnLength * 2);
 		memset(host_indices, 0, sizeof(short) * batch_size * 2);
 		memset(host_matrix, 0, sizeof(short) * matrix_size * batch_size);
+	}
+}
+
+void OpenCLKernel::collect_results_score(short * const scores,
+		int const & batch, size_t const & num) {
+	for (int i = 0; i < num; ++i) {
+		scores[batch + i] = host_scores[i];
+	}
+}
+
+void OpenCLKernel::collect_results_align(Alignment * const alignments,
+		int const & batch, size_t const & num) {
+	for (int i = 0; i < num; ++i) {
+		Alignment alignment;
+		alignment.read = new char[alnLength];
+		alignment.ref = new char[alnLength];
+
+		memcpy(alignment.read, host_alignments + 2 * i * alnLength,
+				alnLength * sizeof(char));
+		memcpy(alignment.ref, host_alignments + 2 * i * alnLength + alnLength,
+				alnLength * sizeof(char));
+
+		alignment.readStart = host_indices[2 * i];
+		alignment.refStart = host_indices[2 * i + 1];
+
+		alignment.readEnd = alnLength - 1;
+		alignment.refEnd = alnLength - 1;
+
+		alignments[batch + i] = alignment;
 	}
 }
 

@@ -79,6 +79,8 @@ private:
 	cl::CommandQueue queue;
 	cl::Kernel kernel;
 
+	void initialize_opencl_environment();
+
 	cl::Device setup_opencl_device(cl_device_type const & device_type);
 	std::vector<cl::Device> fission_opencl_device(cl::Device & device);
 	cl::Context setup_context(cl::Device const & device);
@@ -87,13 +89,17 @@ private:
 			cl::Device const & device);
 	cl::Kernel setup_kernel(cl::Program const & program,
 			char const * kernel_name);
+
 	size_t calculate_batch_size_from_memory(cl::Kernel const & kernel,
 			cl::Device const & device, bool const & score);
+
 	void partition_load(int const & aln_number, size_t const & batch_size,
 			size_t & batch_num, size_t & overhang);
 
-	void initialize_opencl_environment();
 	void init_host_memory(size_t const & batch_size, bool const & score);
+
+	void collect_results_score(short * const scores, int const & batch, size_t const & num);
+	void collect_results_align(Alignment * const alignments, int const & batch, size_t const & num);
 
 	int readLength;
 	int refLength;

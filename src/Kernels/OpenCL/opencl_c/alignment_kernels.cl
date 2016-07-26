@@ -342,7 +342,7 @@ __kernel void calc_alignment_needleman_wunsch(__global const char* read, __globa
 
 			vstore16(pointer, ref_pos + 1, backtrack_matrix_ptr);
 
-			max_ref_pos = select(max_ref_pos, (short16)(ref_pos - 1),(max_ref_pos == (ref_length - (short16)(1))) && convert_short16(ref_cache == v_nullchar));
+			max_ref_pos = select(max_ref_pos, (short16)(ref_pos - 1),(max_ref_pos == ((short16)(ref_length) - (short16)(1))) && convert_short16(ref_cache == v_nullchar));
 			row_max_index = select(row_max_index, ref_pos, cur > row_max);
 			row_max = select(row_max, cur, cur > row_max);
 

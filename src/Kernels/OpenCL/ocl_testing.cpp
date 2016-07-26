@@ -69,26 +69,26 @@ void run_ocl_test(char const * const * const reads,
 
 	cl::Device default_device = all_devices[0]; // Pick CPU
 
-	// Calculate number of used cores/hyperthreading threads
-	// Always only use 3 quarters for computation and leave 1 quarter for background processes
-	int max_devices = default_device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
-	int fission = max_devices / 4 * 3;
-
-	// Partition CPU
-
-	std::vector<cl::Device> subdevices;
-
-	cl_device_partition_property props[4];
-	props[0] = CL_DEVICE_PARTITION_BY_COUNTS;
-	props[1] = std::max(fission, 1);
-	props[2] = CL_DEVICE_PARTITION_BY_COUNTS_LIST_END;
-	props[3] = 0;
-
-	default_device.createSubDevices(props, &subdevices);
-
-	std::cout << "Created " << subdevices.size() << " subdevices.\n";
-
-	default_device = subdevices[0];
+//	// Calculate number of used cores/hyperthreading threads
+//	// Always only use 3 quarters for computation and leave 1 quarter for background processes
+//	int max_devices = default_device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
+//	int fission = max_devices / 4 * 3;
+//
+//	// Partition CPU
+//
+//	std::vector<cl::Device> subdevices;
+//
+//	cl_device_partition_property props[4];
+//	props[0] = CL_DEVICE_PARTITION_BY_COUNTS;
+//	props[1] = std::max(fission, 1);
+//	props[2] = CL_DEVICE_PARTITION_BY_COUNTS_LIST_END;
+//	props[3] = 0;
+//
+//	default_device.createSubDevices(props, &subdevices);
+//
+//	std::cout << "Created " << subdevices.size() << " subdevices.\n";
+//
+//	default_device = subdevices[0];
 	std::cout << "Using device: " << default_device.getInfo<CL_DEVICE_NAME>()
 			<< std::endl;
 	std::vector<size_t> work_item_sizes = default_device.getInfo<

@@ -243,6 +243,8 @@ int main(int argc, char *argv[]) {
 
 	//run_ocl_test(reads, refs, seqNumber, max_read_length, max_ref_length);
 
+	//return 0;
+
 	parameters.read_length = max_read_length;
 	parameters.ref_length = max_ref_length;
 	parameters.num_threads = 1;
