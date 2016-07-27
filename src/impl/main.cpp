@@ -145,9 +145,11 @@ int main(int argc, char *argv[]) {
 	outfile.open("alignments_smith_waterman.txt");
 
 	for (int i = 0; i < seqNumber; ++i) {
+
 		outfile << alignments[i].read + alignments[i].readStart << std::endl;
 		outfile << alignments[i].ref + alignments[i].refStart << std::endl
 				<< std::endl;
+
 	}
 
 	outfile.close();
@@ -155,7 +157,7 @@ int main(int argc, char *argv[]) {
 	clear_kernel(kernel, kernel_name);
 
 	//////////////////////////////
-	// Needelman Wunsch-Mode
+	// Needleman Wunsch-Mode
 	//////////////////////////////
 
 	mode = 1;
@@ -178,6 +180,7 @@ int main(int argc, char *argv[]) {
 	outfile.open("alignments_needleman_wunsch.txt");
 
 	for (int i = 0; i < seqNumber; ++i) {
+
 		outfile << alignments[i].read + alignments[i].readStart << std::endl;
 		outfile << alignments[i].ref + alignments[i].refStart << std::endl
 				<< std::endl;
