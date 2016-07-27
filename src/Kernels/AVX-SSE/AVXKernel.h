@@ -10,6 +10,7 @@
 
 #include "AlignmentKernel.h"
 #include "AlignmentParameters.h"
+#include "AlignmentLogger.h"
 
 #if _WIN32
 #define align32 __declspec(align(32))
@@ -21,6 +22,8 @@
 #endif
 
 #define AVX_SIZE 16
+
+#define KERNEL "AVX"
 
 #define UP 1
 #define LEFT 2
@@ -48,14 +51,6 @@ public:
 
 		alnLength = refLength + readLength;
 
-//		std::cout << "Match: " << scoreMatch
-//						<< "\nMismatch: " << scoreMismatch
-//						<< "\nGap_read: " << scoreGapRead
-//						<< "\nGap_ref: " << scoreGapRef
-//						<< "\nRead_length: " << readLength
-//						<< "\nRef_length: " << refLength
-//						<< "\nAln_length: " << alnLength << std::endl;
-
 		if (exception) {
 			throw "Cannot instantiate Kernel. Lacking parameters";
 		}
@@ -78,6 +73,9 @@ public:
 		x_p_left = short_to_avx(LEFT);
 		x_p_diag = short_to_avx(DIAG);
 
+#ifndef NDEBUG
+		Logger.log(0, KERNEL, "Successfully instantiated AVX Kernel.");
+#endif
 
 	}
 

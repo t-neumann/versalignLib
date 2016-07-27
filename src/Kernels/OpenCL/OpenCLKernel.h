@@ -14,6 +14,8 @@
 #include <iostream>
 #include <CL/cl.hpp>
 
+#define KERNEL "OpenCL"
+
 #define VECTORS_PER_WORKITEM 16
 
 class OpenCLKernel: public AlignmentKernel {
@@ -51,9 +53,9 @@ public:
 
 		initialize_opencl_environment();
 
-		#ifndef NDEBUG
+#ifndef NDEBUG
 		Logger.log(0, "OpenCL", "Successfully instantiated OpenCL Kernel.");
-		#endif
+#endif
 
 	}
 	~OpenCLKernel() {
@@ -104,8 +106,10 @@ private:
 
 	void init_host_memory(size_t const & batch_size, bool const & score);
 
-	void collect_results_score(short * const scores, int const & batch, size_t const & num);
-	void collect_results_align(Alignment * const alignments, int const & batch, size_t const & num);
+	void collect_results_score(short * const scores, int const & batch,
+			size_t const & num);
+	void collect_results_align(Alignment * const alignments, int const & batch,
+			size_t const & num);
 
 	int readLength;
 	int refLength;

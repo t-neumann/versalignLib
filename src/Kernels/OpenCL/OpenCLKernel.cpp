@@ -18,8 +18,8 @@
 #include <iostream>
 
 using std::stringstream;
-using std::to_string;
 using std::string;
+using std::to_string;
 
 extern char const opencl_definitions[];
 extern char const scoring_kernels[];
@@ -81,7 +81,7 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 
 #ifndef NDEBUG
 
-		Logger.log(0, "OpenCL",
+		Logger.log(0, KERNEL,
 				string(
 						"Running \"" + string(kernel_name) + "\" with "
 								+ to_string(workers) + " work groups.").c_str());
@@ -101,7 +101,7 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 
 #ifndef NDEBUG
 
-		Logger.log(0, "OpenCL",
+		Logger.log(0, KERNEL,
 				string("Finished batch " + to_string(batch) + ".").c_str());
 
 #endif
@@ -137,7 +137,7 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 
 #ifndef NDEBUG
 
-		Logger.log(0, "OpenCL",
+		Logger.log(0, KERNEL,
 				string(
 						"Running \"" + string(kernel_name) + "\" with "
 								+ to_string(workers) + " work groups.").c_str());
@@ -150,7 +150,7 @@ void OpenCLKernel::score_alignments(int const & opt, int const & aln_number,
 
 #ifndef NDEBUG
 
-		Logger.log(0, "OpenCL",
+		Logger.log(0, KERNEL,
 				string(
 						"Finished overhang of " + to_string(overhang)
 								+ " items.").c_str());
@@ -225,7 +225,7 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 
 #ifndef NDEBUG
 
-		Logger.log(0, "OpenCL",
+		Logger.log(0, KERNEL,
 				string(
 						"Running \"" + string(kernel_name) + "\" with "
 								+ to_string(workers) + " work groups.").c_str());
@@ -240,7 +240,7 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 
 #ifndef NDEBUG
 
-		Logger.log(0, "OpenCL",
+		Logger.log(0, KERNEL,
 				string("Finished batch " + to_string(batch) + ".").c_str());
 
 #endif
@@ -284,7 +284,7 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 
 #ifndef NDEBUG
 
-		Logger.log(0, "OpenCL",
+		Logger.log(0, KERNEL,
 				string(
 						"Running \"" + string(kernel_name) + "\" with "
 								+ to_string(workers) + " work groups.").c_str());
@@ -299,7 +299,7 @@ void OpenCLKernel::compute_alignments(int const & opt, int const & aln_number,
 
 #ifndef NDEBUG
 
-		Logger.log(0, "OpenCL",
+		Logger.log(0, KERNEL,
 				string(
 						"Finished overhang of " + to_string(overhang)
 								+ " items.").c_str());
@@ -331,49 +331,49 @@ string get_device_type(cl_int const & device_type) {
 
 void log_device_info(cl::Device const & device) {
 
-	Logger.log(0, "OpenCL", device.getInfo<CL_DEVICE_NAME>().c_str());
-	Logger.log(0, "OpenCL",
+	Logger.log(0, KERNEL, device.getInfo<CL_DEVICE_NAME>().c_str());
+	Logger.log(0, KERNEL,
 			string(
 					"Type:\t"
 							+ get_device_type(device.getInfo<CL_DEVICE_TYPE>())).c_str());
-	Logger.log(0, "OpenCL",
+	Logger.log(0, KERNEL,
 			string("Vendor:\t" + device.getInfo<CL_DEVICE_VENDOR>()).c_str());
-	Logger.log(0, "OpenCL",
+	Logger.log(0, KERNEL,
 			string(
 					"Max Compute Units:\t"
 							+ to_string(
 									device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>())).c_str());
-	Logger.log(0, "OpenCL",
+	Logger.log(0, KERNEL,
 			string(
 					"Global Memory:\t"
 							+ to_string(
 									device.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>())).c_str());
-	Logger.log(0, "OpenCL",
+	Logger.log(0, KERNEL,
 			string(
 					"Max Clock Frequency:\t"
 							+ to_string(
 									device.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>())).c_str());
-	Logger.log(0, "OpenCL",
+	Logger.log(0, KERNEL,
 			string(
 					"Max Allocateable Memory:\t"
 							+ to_string(
 									device.getInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>())).c_str());
-	Logger.log(0, "OpenCL",
+	Logger.log(0, KERNEL,
 			string(
 					"Local Memory:\t"
 							+ to_string(
 									device.getInfo<CL_DEVICE_LOCAL_MEM_SIZE>())).c_str());
-	Logger.log(0, "OpenCL",
+	Logger.log(0, KERNEL,
 			string(
 					"Available:\t"
 							+ to_string(
 									device.getInfo< CL_DEVICE_AVAILABLE>())).c_str());
-	Logger.log(0, "OpenCL", "");
+	Logger.log(0, KERNEL, "");
 }
 
 void present_devices(std::vector<cl::Device> & all_devices) {
 
-	Logger.log(0, "OpenCL", "Available devices:", 1, "");
+	Logger.log(0, KERNEL, "Available devices:", 1, "");
 
 	for (std::vector<cl::Device>::iterator i = all_devices.begin();
 			i != all_devices.end(); ++i) {
@@ -431,7 +431,7 @@ cl::Device OpenCLKernel::setup_opencl_device(
 
 	if (all_platforms.size() == 0) {
 
-		Logger.log(3, "OpenCL",
+		Logger.log(3, KERNEL,
 				"No platforms found. Check OpenCL installation!");
 
 		exit(-1);
@@ -439,7 +439,7 @@ cl::Device OpenCLKernel::setup_opencl_device(
 
 	cl::Platform default_platform = all_platforms[0];
 
-	Logger.log(0, "OpenCL",
+	Logger.log(0, KERNEL,
 			string(
 					"Using platform:\t"
 							+ default_platform.getInfo<CL_PLATFORM_NAME>()).c_str());
@@ -458,13 +458,13 @@ cl::Device OpenCLKernel::setup_opencl_device(
 
 	if (cpu_devices.size() == 0) {
 
-		Logger.log(3, "OpenCL",  "No devices found. Check OpenCL installation!");
+		Logger.log(3, KERNEL,  "No devices found. Check OpenCL installation!");
 		exit(-1);
 	}
 
 	cl::Device cpu_device = cpu_devices[0];
 
-	Logger.log(0, "OpenCL",  string("Using device:\t" + cpu_device.getInfo<CL_DEVICE_NAME>()).c_str());
+	Logger.log(0, KERNEL,  string("Using device:\t" + cpu_device.getInfo<CL_DEVICE_NAME>()).c_str());
 
 	return cpu_device;
 
@@ -478,7 +478,7 @@ std::vector<cl::Device> OpenCLKernel::fission_opencl_device(
 	if (device.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_ext_device_fission")
 			== string::npos) {
 
-		Logger.log(1, "OpenCL",  "No device fission support! Returning entire device.");
+		Logger.log(1, KERNEL,  "No device fission support! Returning entire device.");
 
 		subdevices.push_back(device);
 		return subdevices;
@@ -500,7 +500,7 @@ std::vector<cl::Device> OpenCLKernel::fission_opencl_device(
 
 	device.createSubDevices(props, &subdevices);
 
-	Logger.log(0, "OpenCL",  string("Created " + to_string(subdevices.size()) + " subdevices with " + to_string(fission) + " cores/threads.").c_str());
+	Logger.log(0, KERNEL,  string("Created " + to_string(subdevices.size()) + " subdevices with " + to_string(fission) + " cores/threads.").c_str());
 
 	return subdevices;
 }
@@ -519,7 +519,7 @@ size_t OpenCLKernel::calculate_batch_size_from_memory(cl::Kernel const & kernel,
 
 #ifndef NDEBUG
 
-	Logger.log(0, "OpenCL",  string("Kernel group size:\t" + to_string(max_work_items)).c_str());
+	Logger.log(0, KERNEL,  string("Kernel group size:\t" + to_string(max_work_items)).c_str());
 
 #endif
 
@@ -538,7 +538,7 @@ size_t OpenCLKernel::calculate_batch_size_from_memory(cl::Kernel const & kernel,
 
 #ifndef NDEBUG
 
-	Logger.log(0, "OpenCL",  string("Sizeof Alignment in bytes:\t" + to_string(_one_alignment)).c_str());
+	Logger.log(0, KERNEL,  string("Sizeof Alignment in bytes:\t" + to_string(_one_alignment)).c_str());
 
 #endif
 
@@ -553,7 +553,7 @@ size_t OpenCLKernel::calculate_batch_size_from_memory(cl::Kernel const & kernel,
 
 #ifndef NDEBUG
 
-	Logger.log(0, "OpenCL",  string("Batch size:\t" + to_string(batch_size)).c_str());
+	Logger.log(0, KERNEL,  string("Batch size:\t" + to_string(batch_size)).c_str());
 
 #endif
 
@@ -567,8 +567,8 @@ void OpenCLKernel::partition_load(int const & aln_number,
 
 #ifndef NDEBUG
 
-	Logger.log(0, "OpenCL",  string("Num batches:\t" + to_string(batch_num)).c_str());
-	Logger.log(0, "OpenCL",  string("Overhang:\t" + to_string(overhang)).c_str());
+	Logger.log(0, KERNEL,  string("Num batches:\t" + to_string(batch_num)).c_str());
+	Logger.log(0, KERNEL,  string("Overhang:\t" + to_string(overhang)).c_str());
 
 #endif
 
@@ -639,7 +639,7 @@ void OpenCLKernel::check_opencl_success(char const * msg, cl_int ci_error_num) {
 
 	if (ci_error_num != CL_SUCCESS) {
 
-		Logger.log(3, "OpenCL",  cl_error_to_string(ci_error_num));
+		Logger.log(3, KERNEL,  cl_error_to_string(ci_error_num));
 
 		throw;
 	}
@@ -743,3 +743,5 @@ char const * OpenCLKernel::cl_error_to_string(cl_int ci_error_num) {
 		return strdup("Unknown");
 	}
 }
+
+#undef KERNEL

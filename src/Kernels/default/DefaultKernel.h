@@ -10,6 +10,7 @@
 
 #include "AlignmentKernel.h"
 #include "AlignmentParameters.h"
+#include "AlignmentLogger.h"
 
 #include <cstring>
 #include <cmath>
@@ -19,6 +20,8 @@
 #include <cstring>
 #include <ctime>
 #include <climits>
+
+#define KERNEL "Default"
 
 #define ASCII_ALPHABET 256
 #define SCORE_CASE 6
@@ -77,14 +80,6 @@ public:
 			throw "Cannot instantiate Kernel. Lacking parameters";
 		}
 
-//		std::cout << "Match: " << scoreMatch
-//				<< "\nMismatch: " << scoreMismatch
-//				<< "\nGap_read: " << scoreGapRead
-//				<< "\nGap_ref: " << scoreGapRef
-//				<< "\nRead_length: " << readLength
-//				<< "\nRef_length: " << refLength
-//				<< "\nAln_length: " << alnLength << std::endl;
-
 		short tmp[SCORE_CASE][SCORE_CASE]= {
 				// non ATGCN
 				{0,0,0,0,0,0},
@@ -101,6 +96,9 @@ public:
 		};
 		memcpy(base_score, tmp, SCORE_CASE * SCORE_CASE * sizeof(short));
 
+#ifndef NDEBUG
+		Logger.log(0, KERNEL, "Successfully instantiated Default Kernel.");
+#endif
 
 	}
 

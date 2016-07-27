@@ -10,6 +10,7 @@
 
 #include "AlignmentKernel.h"
 #include "AlignmentParameters.h"
+#include "AlignmentLogger.h"
 
 #if _WIN32
 #define align16 __declspec(align(16))
@@ -22,6 +23,8 @@
 
 #define SSE_SIZE 8
 
+#define KERNEL "SSE"
+
 #define UP 1
 #define LEFT 2
 #define DIAG 3
@@ -29,6 +32,8 @@
 
 #include <immintrin.h>
 #include <climits>
+
+#include <iostream>
 
 class SSEKernel : public AlignmentKernel {
 
@@ -67,6 +72,11 @@ public:
 		x_p_up = short_to_sse(UP);
 		x_p_left = short_to_sse(LEFT);
 		x_p_diag = short_to_sse(DIAG);
+
+#ifndef NDEBUG
+		Logger.log(0, KERNEL, "Successfully instantiated SSE Kernel.");
+#endif
+
 	}
 
 	virtual ~SSEKernel() {}

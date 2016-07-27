@@ -6,11 +6,26 @@ project (Versalign)
 
 MESSAGE( STATUS "CMAKE_SYSTEM: " ${CMAKE_SYSTEM} )
 
-MESSAGE( STATUS "CMAKE_BINARY_DIR:         " ${CMAKE_BINARY_DIR} )
-MESSAGE( STATUS "CMAKE_SOURCE_DIR:         " ${CMAKE_SOURCE_DIR} )
+set( VERSION_MAJOR 0 )
+set( VERSION_MINOR 1 )
 
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin/)
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin/)
+IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message(STATUS "Building in debug mode.")
+    set( VERSION_BUILD 0-debug )
+else()
+  set( VERSION_BUILD 0 )
+ENDIF()
+
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
+
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin/Versalign-${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_BUILD}/)
+file(MAKE_DIRECTORY ${EXECUTABLE_OUTPUT_PATH})
+
+#set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin/)
+set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin/Versalign-${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_BUILD}/lib/)
+file(MAKE_DIRECTORY ${LIBRARY_OUTPUT_PATH})
+#set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin/)
 
 # Recurse into the "Hello" and "Demo" subdirectories. This does not actually
 # cause another cmake executable to run. The same process will walk through

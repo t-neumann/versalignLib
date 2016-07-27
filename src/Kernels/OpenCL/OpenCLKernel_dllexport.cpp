@@ -6,7 +6,6 @@
  */
 
 #include "OpenCLKernel.h"
-#include "AlignmentKernel.h"
 
 #ifdef _WIN32
 #define dllexport  __declspec(dllexport)

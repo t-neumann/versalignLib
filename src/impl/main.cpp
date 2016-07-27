@@ -247,6 +247,12 @@ int main(int argc, char *argv[]) {
 	parameters.ref_length = max_ref_length;
 	parameters.num_threads = 10;
 
+#ifndef NDEBUG
+	const string libPathDir = "../bin/Versalign-0.1.0-debug/lib/";
+#else
+	const string libPathDir = "../bin/Versalign-0.1.0/lib/";
+#endif
+
 #ifdef __APPLE__
 	const string libSuffix("dylib");
 #else
@@ -258,17 +264,17 @@ int main(int argc, char *argv[]) {
 
 # endif
 
-	string libPath("../bin/libDefaultKernel.so");
+	string libPath(libPathDir + "libDefaultKernel." + libSuffix);
 
 	if (check_avx2_support() && lib_exists(libPath)) {
 		logger.log(0, "MAIN", "AVX2 boost detected.");
-		libPath = "../bin/libAVXKernel." + libSuffix;
+//		libPath = libPathDir + "libAVXKernel." + libSuffix;
 	} else {
 		logger.log(0, "MAIN", "SSE4 mode activated.");
-		libPath = "../bin/libSSEKernel." + libSuffix;
+//		libPath = libPathDir + "libSSEKernel." + libSuffix;
 	}
 
-	libPath = "../bin/libOpenCLKernel." + libSuffix;
+//	libPath = libPathDir + "libOpenCLKernel." + libSuffix;
 
 	int dll = DLL_init(libPath.c_str(), &parameters, &logger);
 
@@ -299,6 +305,7 @@ int main(int argc, char *argv[]) {
 //	ocl->compute_alignments(1, seqNumber, reads, refs, alignments);
 
 	plain_kernel->compute_alignments(1, seqNumber, reads, refs, alignments);
+//	plain_kernel->score_alignments(0, seqNumber, reads, refs, scores);
 
 //	for (int i = 0; i < seqNumber; ++i) {
 //		std::cout << reads[i] << std::endl;

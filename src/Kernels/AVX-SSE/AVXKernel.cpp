@@ -6,12 +6,19 @@
  */
 
 #include "AVXKernel.h"
+
 #include <memory.h>
-#include <iostream>
 #include <cstdio>
-#include <sstream>
+#include <string>
+
+using std::string;
+using std::to_string;
 
 #define SCORING_ROWS 2
+
+#ifndef NDEBUG
+
+#include <sstream>
 
 template <typename T>
 std::string __m256i_toString(const __m256i var) {
@@ -29,6 +36,8 @@ std::string __m256i_toString(const __m256i var) {
     return sstr.str();
 }
 
+#endif
+
 void AVXKernel::compute_alignments(int const & opt, int const & aln_number, char const * const * const reads,
 		char const * const * const refs, Alignment * const alignments) {
 
@@ -39,11 +48,9 @@ void AVXKernel::compute_alignments(int const & opt, int const & aln_number, char
 	switch(alignment_algorithm) {
 	case 0:
 		alignment_call = &AVXKernel::calc_alignment_smith_waterman;
-		//calc_alignment_smith_waterman(reads, refs, alignments);
 		break;
 	case 1:
 		alignment_call = &AVXKernel::calc_alignment_needleman_wunsch;
-		//calc_alignment_needleman_wunsch(reads, refs, alignments);
 		break;
 	default:
 		// Unsupported mode
@@ -57,36 +64,22 @@ void AVXKernel::compute_alignments(int const & opt, int const & aln_number, char
 
 		int cur_alignment = 0;
 
-		//		std::cout << "Started SSE aligning...\n"
-		//				<< "# alignments:\t" << aln_number
-		//				<< "\n# batches:\t" << num_batches
-		//				<< "\n# overflow:\t" << mod << std::endl;
+#ifndef NDEBUG
+		Logger.log(0, KERNEL, "Started AVX alignment.");
+		Logger.log(0, KERNEL, string("# Alignments:\t" + to_string(aln_number)).c_str());
+		Logger.log(0, KERNEL, string("# Batches:\t" + to_string(num_batches)).c_str());
+		Logger.log(0, KERNEL, string("# Overhang:\t" + to_string(mod)).c_str());
+#endif
+
 		#ifndef __linux__
 		#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
 		#endif
 		for (int i = num_batches; i > 0; --i) {
 			(this->*alignment_call)(reads + cur_alignment,refs + cur_alignment,alignments + cur_alignment);
-//			for (int i = cur_alignment; i < cur_alignment + AVX_SIZE; ++i) {
-//				std::cout << "Score:\t" << scores32[i] << std::endl;
-//			}
 			cur_alignment+= AVX_SIZE;
 		}
 
-//		while (num_batches > 0) {
-//			(this->*alignment_call)(reads + cur_alignment,refs + cur_alignment,alignments + cur_alignment);
-//
-//			//			for (int i = cur_alignment; i < cur_alignment + SSE_SIZE; ++i) {
-//			//				std::cout << "==================" << std::endl << "\"";
-//			//				std::cout << alignments[i].read + alignments[i].readStart;
-//			//				std::cout << "\"" << std::endl << "\"";
-//			//				std::cout << alignments[i].ref + alignments[i].refStart;
-//			//				std::cout << "\"" << std::endl << "==================" << std::endl;
-//			//			}
-//			cur_alignment += AVX_SIZE;
-//			--num_batches;
-//		}
-
-		// Number of alignments not multiple of SSE_SIZE (8 alignments in SIMD registers)
+		// Number of alignments not multiple of AVX_SIZE (16 alignments in SIMD registers)
 		// -> Need to fillup remaining slots with \0 sequences
 
 		if (mod != 0) {
@@ -117,12 +110,6 @@ void AVXKernel::compute_alignments(int const & opt, int const & aln_number, char
 
 			for (int i = 0; i < mod; ++i) {
 				alignments[cur_alignment + i] = alignment_overflow[i];
-
-				//				std::cout << "==================" << std::endl << "\"";
-				//				std::cout << alignments[cur_alignment + i].read + alignments[cur_alignment + i].readStart;
-				//				std::cout << "\"" << std::endl << "\"";
-				//				std::cout << alignments[cur_alignment + i].ref + alignments[cur_alignment + i].refStart;
-				//				std::cout << "\"" << std::endl << "==================" << std::endl;
 			}
 
 			delete[] alignment_overflow; alignment_overflow = 0;
@@ -164,30 +151,20 @@ void AVXKernel::score_alignments(int const & opt, int const & aln_number, char c
 
 		int cur_alignment = 0;
 
-//				std::cout << "Started AVX2 scoring...\n"
-//						<< "# alignments:\t" << aln_number
-//						<< "\n# batches:\t" << num_batches
-//						<< "\n# overflow:\t" << mod << std::endl;
+#ifndef NDEBUG
+		Logger.log(0, KERNEL, "Started AVX scoring.");
+		Logger.log(0, KERNEL, string("# Alignments:\t" + to_string(aln_number)).c_str());
+		Logger.log(0, KERNEL, string("# Batches:\t" + to_string(num_batches)).c_str());
+		Logger.log(0, KERNEL, string("# Overhang:\t" + to_string(mod)).c_str());
+#endif
 
 		#ifndef __linux__
 		#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
 		#endif
 		for (int i = num_batches; i > 0; --i) {
 			(this->*scoring_call)(reads + cur_alignment,refs + cur_alignment,scores32 + cur_alignment);
-//			for (int i = cur_alignment; i < cur_alignment + AVX_SIZE; ++i) {
-//				std::cout << "Score:\t" << scores32[i] << std::endl;
-//			}
 			cur_alignment+= AVX_SIZE;
 		}
-
-//		while (num_batches > 0) {
-//			(this->*scoring_call)(reads + cur_alignment,refs + cur_alignment,scores32 + cur_alignment);
-//			for (int i = cur_alignment; i < cur_alignment + AVX_SIZE; ++i) {
-//				std::cout << "Score:\t" << scores32[i] << std::endl;
-//			}
-//			cur_alignment += AVX_SIZE;
-//			--num_batches;
-//		}
 
 		memcpy(scores, scores32, sizeof(short) * (aln_number / AVX_SIZE) * AVX_SIZE);
 
@@ -223,8 +200,6 @@ void AVXKernel::score_alignments(int const & opt, int const & aln_number, char c
 
 			for (int i = 0; i < mod; ++i) {
 				scores[cur_alignment + i] = scores32[i];
-				//std::cout << "Score:\t" << scores[cur_alignment + i] << std::endl;
-
 			}
 
 			free(scores32);
@@ -286,11 +261,13 @@ void AVXKernel::calc_alignment_matrix_smith_waterman(char const * const * const 
 		// UC read
 		sse_read_bases = _mm256_and_si256(sse_read_bases,x_UCMask);
 
-		//std::cout << "Read base current:\t" << __m256i_toString<char>(sse_read_bases);
+#ifndef NDEBUG
+
+		Logger.log(0, KERNEL, string("# Current read base:\t" + __m256i_toString<char>(sse_read_bases)).c_str());
+
+#endif
 
 		__m256i valid_read_base = _mm256_or_si256(_mm256_cmpeq_epi16(sse_read_bases,x_C),_mm256_or_si256(_mm256_cmpeq_epi16(sse_read_bases,x_G),_mm256_or_si256(_mm256_cmpeq_epi16(sse_read_bases,x_T),_mm256_cmpeq_epi16(sse_read_bases,x_A))));
-
-		//std::cout << std::endl << "Valid:\t" << __m256i_toString<short>(valid_read_base) << std::endl;
 
 		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
 
@@ -315,8 +292,11 @@ void AVXKernel::calc_alignment_matrix_smith_waterman(char const * const * const 
 
 			__m256i valid_ref_base = _mm256_or_si256(_mm256_cmpeq_epi16(sse_ref_bases,x_C),_mm256_or_si256(_mm256_cmpeq_epi16(sse_ref_bases,x_G),_mm256_or_si256(_mm256_cmpeq_epi16(sse_ref_bases,x_T),_mm256_cmpeq_epi16(sse_ref_bases,x_A))));
 
-			//std::cout << "Ref base current:\t" << __m256i_toString<char>(sse_ref_bases);
-			//std::cout << std::endl << "Valid:\t" << __m256i_toString<short>(valid_ref_base) << std::endl;
+#ifndef NDEBUG
+
+			Logger.log(0, KERNEL, string("# Current ref base:\t" + __m256i_toString<char>(sse_ref_bases)).c_str());
+
+#endif
 
 			__m256i valid_comp = _mm256_and_si256(valid_read_base, valid_ref_base);
 
@@ -360,21 +340,20 @@ void AVXKernel::calc_alignment_matrix_smith_waterman(char const * const * const 
 			// Store read and ref positions if new max score
 			match = _mm256_cmpgt_epi16(cell, max_score);
 
-//			std::cout << "Scores:\t" << __m256i_toString<short>(cell) << std::endl;
-//			std::cout << "Max:\t" << __m256i_toString<short>(max_score) << std::endl;
-//			std::cout << "Match:\t" << __m256i_toString<short>(match) << std::endl;
-
 			best_read_pos = _mm256_max_epi16(_mm256_andnot_si256(match, best_read_pos),_mm256_and_si256(match, sse_read_pos));
 			best_ref_pos = _mm256_max_epi16(_mm256_andnot_si256(match, best_ref_pos),_mm256_and_si256(match, sse_ref_pos));
 
-			//std::cout << "Best read pos\t" << __m256i_toString<short>(best_read_pos);
-			//std::cout << "Best ref pos\t" << __m256i_toString<short>(best_ref_pos);
+#ifndef NDEBUG
+
+			Logger.log(0, KERNEL, string("Scores:\t" + __m256i_toString<short>(cell)).c_str());
+			Logger.log(0, KERNEL, string("Best read pos:\t" + __m256i_toString<short>(best_read_pos)).c_str());
+			Logger.log(0, KERNEL, string("Best ref pos:\t" + __m256i_toString<short>(best_ref_pos)).c_str());
+
+#endif
 
 			max_score = _mm256_max_epi16(cell, max_score);
 
 			sse_ref_pos = _mm256_add_epi16(sse_ref_pos, see_increment);
-
-			//std::cout << "ref pos " << __m256i_toString<short>(sse_ref_pos);
 
 		}
 		prev_row_score = current_row_score;
@@ -383,12 +362,13 @@ void AVXKernel::calc_alignment_matrix_smith_waterman(char const * const * const 
 		++current_row_aln;
 
 		sse_read_pos = _mm256_add_epi16(sse_read_pos, see_increment);
-
-		//std::cout << __m256i_toString<short>(sse_read_pos);
-
 	}
 
-//	std::cout << "Max scores: " << __m256i_toString<short>(max_score);
+#ifndef NDEBUG
+
+	Logger.log(0, KERNEL, string("Max scores:\t" + __m256i_toString<short>(max_score)).c_str());
+
+#endif
 
 	free(scoreMat);
 
@@ -463,26 +443,17 @@ void AVXKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 		// if max_readpos == readLength - 1 AND read char is invalid -> max_read_pos = read_pos - 1
 		max_read_pos = _mm_blendv_si256(max_read_pos, _mm256_sub_epi16(sse_read_pos,see_increment), _mm256_andnot_si256(valid_read_base,_mm256_cmpeq_epi16(max_read_pos, short_to_avx(readLength - 1))));
 
-//		std::cout << "Max read pos:\t" << __m256i_toString<short>(max_read_pos) << std::endl;
-//		std::cout << "Read pos:\t" << __m256i_toString<short>(sse_read_pos) << std::endl;
-//		std::cout << "Read Length:\t" << __m256i_toString<short>(short_to_avx(readLength - 1)) << std::endl;
-//		std::cout << "Valid read base:\t" << __m256i_toString<short>(valid_read_base) << std::endl;
-//		std::cout << "Max read pos == read Length - 1:\t" << __m256i_toString<short>(_mm256_cmpeq_epi16(max_read_pos, short_to_avx(readLength - 1))) << std::endl;
-//		std::cout << "cmp:\t" << __m256i_toString<short>(_mm256_andnot_si256(valid_read_base,_mm256_cmpeq_epi16(max_read_pos, short_to_avx(readLength - 1)))) << std::endl;
-//		std::cout << std::endl;
-
 		// Save previous row max if read ends prematurely
 		// if max_readpos + 1 == read_pos -> globalRowMax = rowMax; globalRowMaxIndex = rowMaxIndex;
-//		__m256i sel = _mm256_cmpeq_epi16(_mm256_add_epi16(max_read_pos,see_increment), sse_read_pos);
-//		globalRowMax =  _mm_blendv_si256(globalRowMax,rowMax,sel);
-//		globalRowMaxIndex =  _mm_blendv_si256(globalRowMaxIndex,rowMaxIndex,sel);
 		globalRowMaxIndex =  _mm_blendv_si256(globalRowMaxIndex,rowMaxIndex,_mm256_cmpeq_epi16(_mm256_add_epi16(max_read_pos,see_increment), sse_read_pos));
 
-//		std::cout << "Max_readpos + 1 == readpos:\t" << __m256i_toString<short>(sel) << std::endl;
-//		std::cout << "globalRowMax:\t" << __m256i_toString<short>(globalRowMax) << std::endl;
-//		std::cout << "globalRowMaxIndex:\t" << __m256i_toString<short>(globalRowMaxIndex) << std::endl;
-//		std::cout << "rowMax:\t" << __m256i_toString<short>(rowMax) << std::endl;
-//		std::cout << "rowMaxIndex:\t" << __m256i_toString<short>(rowMaxIndex) << std::endl;
+
+#ifndef NDEBUG
+		Logger.log(0, KERNEL, string("Current read base:\t" + __m256i_toString<char>(sse_read_bases)).c_str());
+		Logger.log(0, KERNEL, string("Max read pos:\t" + __m256i_toString<short>(max_read_pos)).c_str());
+		Logger.log(0, KERNEL, string("Global Row Max Index:\t" + __m256i_toString<short>(globalRowMaxIndex)).c_str());
+
+#endif
 
 		rowMax = _mm256_load_si256((__m256i *) (scoreMat + AVX_SIZE * (current_row_score * (refLength + 1))));
 		rowMaxIndex = x_zeros;
@@ -510,9 +481,11 @@ void AVXKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 
 			__m256i valid_ref_base = _mm256_or_si256(_mm256_cmpeq_epi16(sse_ref_bases,x_C),_mm256_or_si256(_mm256_cmpeq_epi16(sse_ref_bases,x_G),_mm256_or_si256(_mm256_cmpeq_epi16(sse_ref_bases,x_T),_mm256_cmpeq_epi16(sse_ref_bases,x_A))));
 
-//			std::cout << "Ref base current:\t";
-//			print_sse_char(sse_ref_bases);
-//			std::cout << std::endl << "Valid:\t" << __m256i_toString<short>(valid_ref_base) << std::endl;
+#ifndef NDEBUG
+
+			Logger.log(0, KERNEL, string("Current ref base:\t" + __m256i_toString<char>(sse_ref_bases)).c_str());
+
+#endif
 
 			__m256i valid_comp = _mm256_and_si256(valid_read_base, valid_ref_base);
 
@@ -553,27 +526,7 @@ void AVXKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 			_mm256_store_si256((__m256i *) (scoreMat + AVX_SIZE * (current_row_score * (refLength + 1) + ref_pos + 1)), cell);
 			_mm256_store_si256((__m256i *) (matrix + AVX_SIZE * (current_row_aln * (refLength + 1) + ref_pos + 1)), pointer);
 
-			// Store read and ref positions if new max score
-			//match = _mm256_cmpgt_epi16(cell, max_score);
-
-//			std::cout << "Scores:\t" << __m256i_toString<short>(cell) << std::endl;
-//			std::cout << "Max:\t" << __m256i_toString<short>(max_score) << std::endl;
-//			std::cout << "Match:\t" << __m256i_toString<short>(match) << std::endl;
-
-			//best_read_pos = _mm256_max_epi16(_mm256_andnot_si256(match, best_read_pos),_mm256_and_si256(match, sse_read_pos));
-			//best_ref_pos = _mm256_max_epi16(_mm256_andnot_si256(match, best_ref_pos),_mm256_and_si256(match, sse_ref_pos));
-
-			//std::cout << "Best read pos\t" << __m256i_toString<short>(best_read_pos);
-			//std::cout << "Best ref pos\t" << __m256i_toString<short>(best_ref_pos);
-
 			// if max_ref_pos == refLength - 1 AND ref char is invalid -> max_ref_pos = ref_pos - 1
-//			std::cout << std::endl << "Max_ref_pos:\t" << __m256i_toString<short>(max_ref_pos) << std::endl;
-//			std::cout << std::endl << "sse_ref_pos:\t" << __m256i_toString<short>(sse_ref_pos) << std::endl;
-//			std::cout << std::endl << "reflength - 1:\t" << __m256i_toString<short>(short_to_avx(refLength - 1)) << std::endl;
-//			std::cout << std::endl << "valid_ref_base:\t" << __m256i_toString<short>(valid_ref_base) << std::endl;
-//
-//			char a;
-//			std::cin >> a;
 			max_ref_pos = _mm_blendv_si256(max_ref_pos, _mm256_sub_epi16(sse_ref_pos,see_increment), _mm256_andnot_si256(valid_ref_base,_mm256_cmpeq_epi16(max_ref_pos, short_to_avx(refLength - 1))));
 
 			// if cur > rowMax => rowMax = cur; rowMaxIndex = ref_pos;
@@ -581,9 +534,17 @@ void AVXKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 			rowMax = _mm_blendv_si256(rowMax,cell,sel);
 			rowMaxIndex = _mm_blendv_si256(rowMaxIndex,sse_ref_pos,sel);
 
-			sse_ref_pos = _mm256_add_epi16(sse_ref_pos, see_increment);
+#ifndef NDEBUG
 
-			//std::cout << "ref pos " << __m256i_toString<short>(sse_ref_pos);
+			Logger.log(0, KERNEL, string("Current score:\t" + __m256i_toString<short>(cell)).c_str());
+			Logger.log(0, KERNEL, string("Current pointer:\t" + __m256i_toString<short>(pointer)).c_str());
+			Logger.log(0, KERNEL, string("Max_ref_pos:\t" + __m256i_toString<short>(max_ref_pos)).c_str());
+			Logger.log(0, KERNEL, string("Row max:\t" + __m256i_toString<short>(rowMax)).c_str());
+			Logger.log(0, KERNEL, string("Row max index:\t" + __m256i_toString<short>(rowMaxIndex)).c_str());
+
+#endif
+
+			sse_ref_pos = _mm256_add_epi16(sse_ref_pos, see_increment);
 
 		}
 		prev_row_score = current_row_score;
@@ -592,22 +553,21 @@ void AVXKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 		++current_row_aln;
 
 		sse_read_pos = _mm256_add_epi16(sse_read_pos, see_increment);
-
-		//std::cout << __m256i_toString<short>(sse_read_pos);
-
 	}
-
-//	std::cout << "Max scores: " << __m256i_toString<short>(max_score);
 
 	free(scoreMat);
 
-	//globalRowMaxIndex = _mm_blendv_si256(globalRowMaxIndex, rowMaxIndex, _mm256_cmpgt_epi16(x_zeros,globalRowMaxIndex));
 	globalRowMaxIndex = _mm_blendv_si256(globalRowMaxIndex, rowMaxIndex, _mm256_cmpgt_epi16(x_zeros,globalRowMaxIndex));
 
-//	std::cout << "Max_ref_pos:\t" << __m256i_toString<short>(max_ref_pos) << std::endl;
-//	std::cout << "globalRowMaxIndex:\t" << __m256i_toString<short>(globalRowMaxIndex) << std::endl;
-
 	__m256i best_ref_pos = _mm256_min_epi16(max_ref_pos,globalRowMaxIndex);
+
+#ifndef NDEBUG
+
+	Logger.log(0, KERNEL, string("Global row max index:\t" + __m256i_toString<short>(globalRowMaxIndex)).c_str());
+	Logger.log(0, KERNEL, string("Best read pos:\t" + __m256i_toString<short>(max_read_pos)).c_str());
+	Logger.log(0, KERNEL, string("Best ref pos:\t" + __m256i_toString<short>(best_ref_pos)).c_str());
+
+#endif
 
 	_mm256_store_si256((__m256i *)best_coordinates, max_read_pos);
 	_mm256_store_si256((__m256i *)best_coordinates + 1, best_ref_pos);
@@ -615,8 +575,6 @@ void AVXKernel::calculate_alignment_matrix_needleman_wunsch(char const * const *
 
 void AVXKernel::calc_alignment_smith_waterman(char const * const * const read,
 				char const * const * const ref, Alignment * const alignment) {
-
-	std::cout << "Aln Length:\t" << alnLength << std::endl;
 
 	short * matrix = 0;
 	malloc32(matrix, sizeof(short) * (refLength + 1) * (readLength + 1) * AVX_SIZE);
@@ -626,21 +584,29 @@ void AVXKernel::calc_alignment_smith_waterman(char const * const * const read,
 	malloc32(best_coordinates, sizeof(short) * 2 * AVX_SIZE);
 	memset(best_coordinates, 0, sizeof(short) * 2 * AVX_SIZE);
 
-	std::cout << "Score matrix" << std::endl;
-
 	calc_alignment_matrix_smith_waterman(read, ref, matrix, best_coordinates);
 
-	for (int SSE_register = 0; SSE_register < AVX_SIZE; ++SSE_register) {
-		std::cout << "Matrix:" << std::endl;
+#ifndef NDEBUG
+
+	Logger.log(0, KERNEL, "Score matrix:");
+
+	for (int AVX_register = 0; AVX_register < AVX_SIZE; ++AVX_register) {
+
+		Logger.log(0, KERNEL,
+				string("Alignment matrix " + to_string(AVX_register) + ":").c_str());
 		for (int i = 0; i < readLength + 1; ++i) {
+			string matrix_line;
 			for (int j = 0; j < refLength + 1; ++j) {
-				//__m256i cell = _mm256_load_si256((__m256i *) (matrix + AVX_SIZE * (i * (refLength + 1) + j)));
-				//std::cout << __m256i_toString<short>(cell) << std::endl;
-				std::cout << *(matrix + AVX_SIZE * (i * (refLength + 1) + j) + SSE_register) << " ";
+				matrix_line += (to_string(
+						*(matrix + AVX_SIZE * (i * (refLength + 1) + j)
+								+ AVX_register)) + "\t");
 			}
-			std::cout << std::endl;
+			Logger.log(0, KERNEL, matrix_line.c_str());
 		}
+		Logger.log(0, KERNEL, "");
 	}
+
+#endif
 
 	char * alignments = new char[alnLength * 2 * AVX_SIZE];
 
@@ -648,15 +614,18 @@ void AVXKernel::calc_alignment_smith_waterman(char const * const * const read,
 	__m256i best_read_positions = _mm256_load_si256((__m256i *) best_coordinates);
 	__m256i best_ref_positions = _mm256_load_si256((__m256i *) best_coordinates + 1);
 
-//	std::cout << "Best read: " << __m256i_toString<short>(best_read_positions);
-//	std::cout << std::endl << "Best ref: " << __m256i_toString<short>(best_ref_positions);
-//	std::cout << std::endl;
+#ifndef NDEBUG
+
+	Logger.log(0, KERNEL, string("Best read pos:\t" + __m256i_toString<short>(best_read_positions)).c_str());
+	Logger.log(0, KERNEL, string("Best ref pos:\t" + __m256i_toString<short>(best_ref_positions)).c_str());
+
+#endif
+
 
 	for (int SSE_register = 0; SSE_register < AVX_SIZE; ++SSE_register) {
-//		std::cout << "register " << SSE_register << std::endl;
+
 		short read_pos = *(best_coordinates + SSE_register);
 		short ref_pos = *(best_coordinates + AVX_SIZE + SSE_register);
-//		std::cout << "Cur read_pos " << read_pos << " Cur ref_pos " << ref_pos << std::endl;
 
 		int aln_pos = alnLength - 2;
 
@@ -666,21 +635,23 @@ void AVXKernel::calc_alignment_smith_waterman(char const * const * const read,
 		short backtrack = *(matrix + AVX_SIZE * ((read_pos + 1) * (refLength + 1) + ref_pos + 1) + SSE_register);
 
 		while (backtrack != START) {
-//			std::cout << "Cur backtrack " << backtrack << std::endl;
+
+#ifndef NDEBUG
+
+			Logger.log(0, KERNEL, string("Current backtrack:\t" + to_string(backtrack)).c_str());
+
+#endif
 
 			if (backtrack == UP) {
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = '-';
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = read[SSE_register][read_pos--];
 			}
 
-//			char base = *(read[SSE_register] + read_pos);
-//			std::cout << "Read base:\t" << base << std::endl;
 			if (backtrack == LEFT) {
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = '-';
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = ref[SSE_register][ref_pos--];
 			}
-//			base = *(ref[SSE_register] + ref_pos);
-//			std::cout << "Ref base:\t" << base << std::endl;
+
 			if (backtrack == DIAG) {
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = read[SSE_register][read_pos--];
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = ref[SSE_register][ref_pos--];
@@ -689,7 +660,12 @@ void AVXKernel::calc_alignment_smith_waterman(char const * const * const read,
 			backtrack = *(matrix + AVX_SIZE * ((read_pos + 1) * (refLength + 1) + ref_pos + 1) + SSE_register);
 			--aln_pos;
 
-//			std::cout << "Cur read pos:\t" << read_pos << std::endl << "Cur refpos:\t" << ref_pos << std::endl;
+#ifndef NDEBUG
+
+			Logger.log(0, KERNEL, string("Current read pos:\t" + to_string(read_pos)).c_str());
+			Logger.log(0, KERNEL, string("Current ref pos:\t" + to_string(ref_pos)).c_str());
+
+#endif
 
 		}
 
@@ -714,9 +690,6 @@ void AVXKernel::calc_alignment_smith_waterman(char const * const * const read,
 void AVXKernel::calc_alignment_needleman_wunsch(char const * const * const read,
 		char const * const * const ref, Alignment * const alignment) {
 
-
-	std::cout << "Aln Length:\t" << alnLength << std::endl;
-
 	short * matrix = 0;
 	malloc32(matrix, sizeof(short) * (refLength + 1) * (readLength + 1) * AVX_SIZE);
 	memset(matrix, 0, (refLength + 1) * (readLength + 1) * AVX_SIZE * sizeof(short));
@@ -725,21 +698,29 @@ void AVXKernel::calc_alignment_needleman_wunsch(char const * const * const read,
 	malloc32(best_coordinates, sizeof(short) * 2 * AVX_SIZE);
 	memset(best_coordinates, 0, sizeof(short) * 2 * AVX_SIZE);
 
-	//std::cout << "Score matrix" << std::endl;
-
 	calculate_alignment_matrix_needleman_wunsch(read, ref, matrix, best_coordinates);
 
-	for (int SSE_register = 0; SSE_register < AVX_SIZE; ++SSE_register) {
-		//std::cout << "Matrix:" << std::endl;
+#ifndef NDEBUG
+
+	Logger.log(0, KERNEL, "Score matrix:");
+
+	for (int AVX_register = 0; AVX_register < AVX_SIZE; ++AVX_register) {
+
+		Logger.log(0, KERNEL,
+				string("Alignment matrix " + to_string(AVX_register) + ":").c_str());
 		for (int i = 0; i < readLength + 1; ++i) {
+			string matrix_line;
 			for (int j = 0; j < refLength + 1; ++j) {
-				//__m256i cell = _mm256_load_si256((__m256i *) (matrix + AVX_SIZE * (i * (refLength + 1) + j)));
-				//std::cout << __m256i_toString<short>(cell) << std::endl;
-				//std::cout << *(matrix + AVX_SIZE * (i * (refLength + 1) + j) + SSE_register) << " ";
+				matrix_line += (to_string(
+						*(matrix + AVX_SIZE * (i * (refLength + 1) + j)
+								+ AVX_register)) + "\t");
 			}
-			//std::cout << std::endl;
+			Logger.log(0, KERNEL, matrix_line.c_str());
 		}
+		Logger.log(0, KERNEL, "");
 	}
+
+#endif
 
 	char * alignments = new char[alnLength * 2 * AVX_SIZE];
 
@@ -747,15 +728,17 @@ void AVXKernel::calc_alignment_needleman_wunsch(char const * const * const read,
 	__m256i best_read_positions = _mm256_load_si256((__m256i *) best_coordinates);
 	__m256i best_ref_positions = _mm256_load_si256((__m256i *) best_coordinates + 1);
 
-	std::cout << "Best read: " << __m256i_toString<short>(best_read_positions);
-	std::cout << std::endl << "Best ref: " << __m256i_toString<short>(best_ref_positions);
-	std::cout << std::endl;
+#ifndef NDEBUG
+
+	Logger.log(0, KERNEL, string("Best read pos:\t" + __m256i_toString<short>(best_read_positions)).c_str());
+	Logger.log(0, KERNEL, string("Best ref pos:\t" + __m256i_toString<short>(best_ref_positions)).c_str());
+
+#endif
 
 	for (int SSE_register = 0; SSE_register < AVX_SIZE; ++SSE_register) {
-		//		std::cout << "register " << SSE_register << std::endl;
+
 		short read_pos = *(best_coordinates + SSE_register);
 		short ref_pos = *(best_coordinates + AVX_SIZE + SSE_register);
-		//		std::cout << "Cur read_pos " << read_pos << " Cur ref_pos " << ref_pos << std::endl;
 
 		int aln_pos = alnLength - 2;
 
@@ -765,21 +748,22 @@ void AVXKernel::calc_alignment_needleman_wunsch(char const * const * const read,
 		short backtrack = *(matrix + AVX_SIZE * ((read_pos + 1) * (refLength + 1) + ref_pos + 1) + SSE_register);
 
 		while (backtrack != START) {
-			//			std::cout << "Cur backtrack " << backtrack << std::endl;
 
+#ifndef NDEBUG
+
+			Logger.log(0, KERNEL, string("Current backtrack:\t" + to_string(backtrack)).c_str());
+
+#endif
 			if (backtrack == UP) {
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = '-';
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = read[SSE_register][read_pos--];
 			}
 
-			//			char base = *(read[SSE_register] + read_pos);
-			//			std::cout << "Read base:\t" << base << std::endl;
 			if (backtrack == LEFT) {
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = '-';
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = ref[SSE_register][ref_pos--];
 			}
-			//			base = *(ref[SSE_register] + ref_pos);
-			//			std::cout << "Ref base:\t" << base << std::endl;
+
 			if (backtrack == DIAG) {
 				alignments[(SSE_register * alnLength * 2) + aln_pos] = read[SSE_register][read_pos--];
 				alignments[(SSE_register * alnLength * 2) + alnLength + aln_pos] = ref[SSE_register][ref_pos--];
@@ -788,7 +772,12 @@ void AVXKernel::calc_alignment_needleman_wunsch(char const * const * const read,
 			backtrack = *(matrix + AVX_SIZE * ((read_pos + 1) * (refLength + 1) + ref_pos + 1) + SSE_register);
 			--aln_pos;
 
-			//			std::cout << "Cur read pos:\t" << read_pos << std::endl << "Cur refpos:\t" << ref_pos << std::endl;
+#ifndef NDEBUG
+
+			Logger.log(0, KERNEL, string("Current read pos:\t" + to_string(read_pos)).c_str());
+			Logger.log(0, KERNEL, string("Current ref pos:\t" + to_string(ref_pos)).c_str());
+
+#endif
 
 		}
 
@@ -846,7 +835,11 @@ void AVXKernel::score_alignment_smith_waterman (char const * const * const read,
 		// UC read
 		sse_read_bases = _mm256_and_si256(sse_read_bases,x_UCMask);
 
-		//std::cout << "Read base:\t" << __m256i_toString<char>(sse_read_bases);
+#ifndef NDEBUG
+
+		Logger.log(0, KERNEL, string("Read base:\t" + __m256i_toString<char>(sse_read_bases)).c_str());
+
+#endif
 
 		__m256i valid_read_base = _mm256_or_si256(_mm256_cmpeq_epi16(sse_read_bases,x_C),_mm256_or_si256(_mm256_cmpeq_epi16(sse_read_bases,x_G),_mm256_or_si256(_mm256_cmpeq_epi16(sse_read_bases,x_T),_mm256_cmpeq_epi16(sse_read_bases,x_A))));
 
@@ -875,7 +868,11 @@ void AVXKernel::score_alignment_smith_waterman (char const * const * const read,
 
 			__m256i valid_comp = _mm256_and_si256(valid_read_base, valid_ref_base);
 
-			//std::cout << "Ref base:\t" << __m256i_toString<char>(sse_ref_bases);
+#ifndef NDEBUG
+
+			Logger.log(0, KERNEL, string("Ref base:\t" + __m256i_toString<char>(sse_ref_bases)).c_str());
+
+#endif
 
 			// match read and ref bases
 			// matches will hold 1, mismatches will hold 0
@@ -897,12 +894,25 @@ void AVXKernel::score_alignment_smith_waterman (char const * const * const read,
 
 			max_score = _mm256_max_epi16(cell, max_score);
 
+#ifndef NDEBUG
+
+			Logger.log(0, KERNEL, string("Cell:\t" + __m256i_toString<short>(cell)).c_str());
+			Logger.log(0, KERNEL, string("Max:\t" + __m256i_toString<short>(max_score)).c_str());
+
+#endif
+
 		}
 		prev_row = cur_row;
 		(++cur_row) &= 1;
 	}
 
 	free(matrix);
+
+#ifndef NDEBUG
+
+	Logger.log(0, KERNEL, string("Max score:\t" + __m256i_toString<short>(max_score)).c_str());
+
+#endif
 
 	_mm256_store_si256((__m256i *)scores, max_score);
 
@@ -944,8 +954,11 @@ void AVXKernel::score_alignment_needleman_wunsch(char const * const * const read
 		// UC read
 		sse_read_bases = _mm256_and_si256(sse_read_bases,x_UCMask);
 
-		//std::cout << "Read base:\t" << __m256i_toString<char>(sse_read_bases);
+#ifndef NDEBUG
 
+		Logger.log(0, KERNEL, string("Read base:\t" + __m256i_toString<char>(sse_read_bases)).c_str());
+
+#endif
 		__m256i valid_read_base = _mm256_or_si256(_mm256_cmpeq_epi16(sse_read_bases,x_C),_mm256_or_si256(_mm256_cmpeq_epi16(sse_read_bases,x_G),_mm256_or_si256(_mm256_cmpeq_epi16(sse_read_bases,x_T),_mm256_cmpeq_epi16(sse_read_bases,x_A))));
 
 		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
@@ -973,8 +986,11 @@ void AVXKernel::score_alignment_needleman_wunsch(char const * const * const read
 
 			__m256i valid_comp = _mm256_and_si256(valid_read_base, valid_ref_base);
 
-			//std::cout << "Ref base:\t" << __m256i_toString<char>(sse_ref_bases);
+#ifndef NDEBUG
 
+			Logger.log(0, KERNEL, string("Ref base:\t" + __m256i_toString<char>(sse_ref_bases)).c_str());
+
+#endif
 			// match read and ref bases
 			// matches will hold 1, mismatches will hold 0
 			__m256i match = _mm256_cmpeq_epi16(sse_read_bases, sse_ref_bases);
@@ -992,6 +1008,13 @@ void AVXKernel::score_alignment_needleman_wunsch(char const * const * const read
 			__m256i cell = _mm256_max_epi16(diag, _mm256_max_epi16(left, up));
 
 			_mm256_store_si256((__m256i *) (matrix + AVX_SIZE * (cur_row * (refLength + 1) + ref_pos + 1)), cell);
+
+#ifndef NDEBUG
+
+			Logger.log(0, KERNEL, string("Cell:\t" + __m256i_toString<short>(cell)).c_str());
+			Logger.log(0, KERNEL, string("Max:\t" + __m256i_toString<short>(max_score)).c_str());
+
+#endif
 		}
 
 		max_score = _mm256_max_epi16(max_score, _mm256_load_si256((__m256i *) (matrix + AVX_SIZE * (cur_row * (refLength + 1) + refLength))));
@@ -1006,8 +1029,15 @@ void AVXKernel::score_alignment_needleman_wunsch(char const * const * const read
 
 	free(matrix);
 
+#ifndef NDEBUG
+
+	Logger.log(0, KERNEL, string("Max score:\t" + __m256i_toString<short>(max_score)).c_str());
+
+#endif
+
 	_mm256_store_si256((__m256i *)scores, max_score);
 }
 
 #undef SCORING_ROWS
+#undef KERNEL
 #undef AVX_SIZE

@@ -7,8 +7,10 @@
 
 #include "DefaultKernel.h"
 
-using std::cout;
-using std::endl;
+#include <string>
+
+using std::string;
+using std::to_string;
 
 inline short max(short a, short b) {
 	return a > b ? a : b;
@@ -26,11 +28,9 @@ void DefaultKernel::compute_alignments(int const & opt, int const & aln_number, 
 	switch(alignment_algorithm) {
 	case 0:
 		alignment_call = &DefaultKernel::calc_alignment_smith_waterman;
-		//calc_alignment_smith_waterman(reads, refs, alignments);
 		break;
 	case 1:
 		alignment_call = &DefaultKernel::calc_alignment_needleman_wunsch;
-		//calc_alignment_needleman_wunsch(reads, refs, alignments);
 		break;
 	default:
 		// Unsupported mode
@@ -38,6 +38,9 @@ void DefaultKernel::compute_alignments(int const & opt, int const & aln_number, 
 	}
 
 	if (alignment_call != 0) {
+
+		Logger.log(0, KERNEL, string("Running DefaultKernel align with " + to_string(Parameters.param_int("num_threads")) + " threads.").c_str());
+
 		//omp_set_dynamic(0);     // Explicitly disable dynamic teams
 		#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
 		for (int i = 0; i < aln_number; ++i) {
@@ -56,11 +59,9 @@ void DefaultKernel::score_alignments(int const & opt, int const & aln_number, ch
 	switch(alignment_algorithm) {
 	case 0:
 		scoring_call = &DefaultKernel::score_alignment_smith_waterman;
-		//calc_alignment_smith_waterman(reads, refs, alignments);
 		break;
 	case 1:
 		scoring_call = &DefaultKernel::score_alignment_needleman_wunsch;
-		//calc_alignment_needleman_wunsch(reads, refs, alignments);
 		break;
 	default:
 		// Unsupported mode
@@ -68,6 +69,9 @@ void DefaultKernel::score_alignments(int const & opt, int const & aln_number, ch
 	}
 
 	if (scoring_call != 0) {
+
+		Logger.log(0, KERNEL, string("Running DefaultKernel score with " + to_string(Parameters.param_int("num_threads")) + " threads.").c_str());
+
 		//omp_set_dynamic(0);     // Explicitly disable dynamic teams
 		#pragma omp parallel for num_threads(Parameters.param_int("num_threads"))
 		for (int i = 0; i < aln_number; ++i) {
@@ -88,6 +92,11 @@ void DefaultKernel::score_alignment_smith_waterman(char const * const read,
 
 	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
 
+#ifndef NDEBUG
+
+		string matrix_line ("");
+#endif
+
 		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
 
 			short up = matrix[prev_row * (refLength + 1) + ref_pos + 1];
@@ -100,13 +109,31 @@ void DefaultKernel::score_alignment_smith_waterman(char const * const read,
 
 			matrix[current_row * (refLength + 1) + ref_pos + 1] = cur;
 
+#ifndef NDEBUG
+
+			matrix_line += to_string(cur) + " ";
+
+#endif
 			max_score = max(max_score, cur);
 
 		}
+
+#ifndef NDEBUG
+
+		Logger.log(0, KERNEL, matrix_line.c_str());
+
+#endif
 		prev_row = current_row;
 		(++current_row) &= 1;
 	}
 	delete [] matrix; matrix = 0;
+
+#ifndef NDEBUG
+
+	Logger.log(0, KERNEL, string("Max score:\t" + to_string(max_score)).c_str());
+
+#endif
+
 	memset(scores, max_score, 1);
 }
 
@@ -122,6 +149,12 @@ void DefaultKernel::score_alignment_needleman_wunsch(char const * const read,
 
 	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
 
+#ifndef NDEBUG
+
+		string matrix_line ("");
+
+#endif
+
 		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
 
 			short up = matrix[prev_row * (refLength + 1) + ref_pos + 1];
@@ -134,11 +167,20 @@ void DefaultKernel::score_alignment_needleman_wunsch(char const * const read,
 
 			matrix[current_row * (refLength + 1) + ref_pos + 1] = cur;
 
-			//std::cout << cur << " ";
+#ifndef NDEBUG
+
+			matrix_line += to_string(cur) + " ";
+
+#endif
 		}
-		//std::cout << std::endl;
 
 		globalMax = max(globalMax, matrix[current_row * (refLength + 1) + refLength]);
+
+#ifndef NDEBUG
+
+		Logger.log(0, KERNEL, matrix_line.c_str());
+
+#endif
 
 		prev_row = current_row;
 		(++current_row) &= 1;
@@ -147,6 +189,12 @@ void DefaultKernel::score_alignment_needleman_wunsch(char const * const read,
 	for (int ref_pos = 0; ref_pos < refLength + 1; ++ref_pos) {
 		globalMax = max(globalMax, matrix[prev_row * (refLength + 1) + ref_pos]);
 	}
+
+#ifndef NDEBUG
+
+	Logger.log(0, KERNEL, string("Max score:\t" + to_string(globalMax)).c_str());
+
+#endif
 
 	memset(scores, globalMax, 1);
 
@@ -168,6 +216,12 @@ void DefaultKernel::calculate_alignment_matrix_smith_waterman(char const * const
 	short * scoreMat = new short[(refLength + 1) * 2]();
 
 	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
+
+#ifndef NDEBUG
+
+		string matrix_line ("");
+
+#endif
 
 		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
 
@@ -201,10 +255,18 @@ void DefaultKernel::calculate_alignment_matrix_smith_waterman(char const * const
 				max_score = cur;
 			}
 
-			//std::cout << cur << " ";
-		}
-		//std::cout << std::endl;
+#ifndef NDEBUG
 
+			matrix_line += pointer + " ";
+
+#endif
+		}
+
+#ifndef NDEBUG
+
+		Logger.log(0, KERNEL, matrix_line.c_str());
+
+#endif
 		prev_row_score = current_row_score;
 		(++current_row_score) &= 1;
 
@@ -220,13 +282,6 @@ void DefaultKernel::calculate_alignment_matrix_smith_waterman(char const * const
 void DefaultKernel::calculate_alignment_matrix_needleman_wunsch(char const * const read,
 		char const * const ref, alnMat const matrix, short * const best_coordinates) {
 
-	//for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
-	//	matrix[ref_pos + 1] = LEFT;
-	//}
-
-	//short max_read_pos = SHRT_MIN;
-	//short max_ref_pos = SHRT_MIN;
-
 	short max_read_pos = readLength - 1;
 	short max_ref_pos = refLength - 1;
 
@@ -238,18 +293,11 @@ void DefaultKernel::calculate_alignment_matrix_needleman_wunsch(char const * con
 	short * scoreMat = new short[(refLength + 1) * 2]();
 
 	short rowMax = SHRT_MIN;
-	//short colMax = SHRT_MIN;
 
-	//	short globalRowMax = SHRT_MIN;
 	short globalRowMaxIndex = -1;
 
 	short rowMaxIndex = 0;
-	//short colMaxIndex = 0;
 
-	for (int read_pos = 0; read_pos < readLength + 1; ++read_pos) {
-		//		std::cout << scoreMat[read_pos] << " ";
-	}
-	//	std::cout << std::endl;
 
 	for (int read_pos = 0; read_pos < readLength; ++read_pos) {
 
@@ -263,14 +311,17 @@ void DefaultKernel::calculate_alignment_matrix_needleman_wunsch(char const * con
 
 		// Save previous row max if read ends prematurely
 		if (max_read_pos + 1 == read_pos) {
-			//			globalRowMax = rowMax;
 			globalRowMaxIndex = rowMaxIndex;
 		}
 
 		rowMax = scoreMat[current_row_score * (refLength + 1)];
 		rowMaxIndex = 0;
 
-		//		std::cout << (read_pos + 1) * scoreGapRef << " ";
+#ifndef NDEBUG
+
+		string matrix_line ("");
+
+#endif
 
 		for (int ref_pos = 0; ref_pos < refLength; ++ref_pos) {
 
@@ -295,21 +346,29 @@ void DefaultKernel::calculate_alignment_matrix_needleman_wunsch(char const * con
 			}
 
 			if (max_ref_pos == refLength - 1 && char_to_score[ref[ref_pos]] == 0) {
-				//std::cout << std::endl << "Max ref is " << ref_pos - 1 << std::endl;
 				max_ref_pos = ref_pos - 1;
 			}
 
 			if (cur > rowMax) {
-				//std::cout << std::endl << "Max row is " << cur << " Max pos is " << ref_pos << std::endl;
 				rowMax = cur;
 				rowMaxIndex = ref_pos;
 			}
 
 			matrix[current_row_aln * (refLength + 1) + ref_pos + 1] = pointer;
 
-			//			std::cout << cur << " ";
+#ifndef NDEBUG
+
+			matrix_line += pointer + " ";
+
+#endif
+
 		}
-		//		std::cout << std::endl;
+
+#ifndef NDEBUG
+
+		Logger.log(0, KERNEL, matrix_line.c_str());
+
+#endif
 
 		prev_row_score = current_row_score;
 		(++current_row_score) &= 1;
@@ -321,19 +380,10 @@ void DefaultKernel::calculate_alignment_matrix_needleman_wunsch(char const * con
 
 	best_coordinates[0] = max_read_pos;
 
-	//	std::cout << "Max_ref_pos: " << max_ref_pos << std::endl << "globalRowMaxIndex: " << globalRowMaxIndex << std::endl << "rowMaxIndex: " << rowMaxIndex << std::endl;
-
-
 	if (globalRowMaxIndex < 0 ) {
-		//globalRowMax = rowMax;
 		globalRowMaxIndex = rowMaxIndex;
 	}
 
-	//	if (max_ref_pos == refLength - 1) {
-	//		best_coordinates[1] = globalRowMaxIndex;
-	//	} else {
-	//		best_coordinates[1] = max_ref_pos;
-	//	}
 	best_coordinates[1] = std::min(max_ref_pos, globalRowMaxIndex);
 
 }
@@ -341,41 +391,36 @@ void DefaultKernel::calculate_alignment_matrix_needleman_wunsch(char const * con
 void DefaultKernel::calc_alignment_smith_waterman(char const * const read,
 		char const * const ref, Alignment * const alignment) {
 
-	//std::cout << "Aln Length:\t" << alnLength << std::endl;
-
 	alnMat matrix = new char [(refLength + 1) * (readLength + 1)];
 	memset(matrix, START, (refLength + 1) * (readLength + 1) * sizeof(char));
 
 	short * best_coordinates = new short[2];
 
-	//std::cout << "Score matrix" << std::endl;
-
 	calculate_alignment_matrix_smith_waterman(read, ref, matrix, best_coordinates);
-
-	//	std::cout << "Matrix:" << std::endl;
-	//	for (int i = 0; i < readLength + 1; ++i) {
-	//		for (int j = 0; j < refLength + 1; ++j) {
-	//			std::cout << matrix[i * (refLength + 1) + j] << " ";
-	//		}
-	//		std::cout << std::endl;
-	//	}
 
 	char * alignments = new char[alnLength * 2];
 
 	int read_pos = best_coordinates[0];
 	int ref_pos = best_coordinates[1];
 
-	//std::cout << "Best read: " << read_pos << std::endl << "Best ref: " << ref_pos << std::endl;
+#ifndef NDEBUG
+
+	Logger.log(0, KERNEL, string("Best read pos:\t" + to_string(read_pos)).c_str());
+	Logger.log(0, KERNEL, string("Best ref pos:\t" + to_string(ref_pos)).c_str());
+
+#endif
 
 	int aln_pos = alnLength - 2;
 
 	char backtrack = matrix[(read_pos + 1) * (refLength + 1) + ref_pos + 1];
 
-	//std::cout << "Backtrack start:\t";
-
 	while(backtrack != START) {
 
-		//std::cout << backtrack;
+#ifndef NDEBUG
+
+		Logger.log(0, KERNEL, string("Current backtrack:\t" + backtrack).c_str());
+
+#endif
 
 		if (backtrack == UP) {
 			alignments[alnLength + aln_pos] = '-';
@@ -404,8 +449,6 @@ void DefaultKernel::calc_alignment_smith_waterman(char const * const read,
 
 	alignment->readEnd = alnLength - 1;
 	alignment->refEnd = alnLength - 1;
-
-	//std::cout << "\tBacktrack end" << std::endl;
 
 	delete [] alignments; alignments = 0;
 	delete [] best_coordinates; best_coordinates = 0;
@@ -415,45 +458,39 @@ void DefaultKernel::calc_alignment_smith_waterman(char const * const read,
 void DefaultKernel::calc_alignment_needleman_wunsch(char const * const read,
 		char const * const ref, Alignment * const alignment) {
 
-	std::cout << "Aln Length:\t" << alnLength << std::endl;
-
 	alnMat matrix = new char [(refLength + 1) * (readLength + 1)];
 	memset(matrix, START, (refLength + 1) * (readLength + 1) * sizeof(char));
 
 	short * max_coordinates = new short[2];
 
-	std::cout << "Score matrix" << std::endl;
-
 	calculate_alignment_matrix_needleman_wunsch(read, ref, matrix, max_coordinates);
-
-	std::cout << "Matrix:" << std::endl;
-	for (int i = 0; i < readLength + 1; ++i) {
-		for (int j = 0; j < refLength + 1; ++j) {
-			//			std::cout << matrix[i * (refLength + 1) + j] << " ";
-		}
-		//		std::cout << std::endl;
-	}
 
 	char * alignments = new char[alnLength * 2];
 
 	int read_pos = max_coordinates[0];
 	int ref_pos = max_coordinates[1];
 
-	std::cout << "Best read: " << read_pos << std::endl << "Best ref: " << ref_pos << std::endl;
+#ifndef NDEBUG
+
+	Logger.log(0, KERNEL, string("Best read pos:\t" + to_string(read_pos)).c_str());
+	Logger.log(0, KERNEL, string("Best ref pos:\t" + to_string(ref_pos)).c_str());
+
+#endif
 
 	int aln_pos = alnLength - 2;
 
 	char backtrack = matrix[(read_pos + 1) * (refLength + 1) + ref_pos + 1];
-
-	std::cout << "Backtrack start:\t";
 
 	alignments[alnLength - 1] = '\0';
 	alignments[2 * alnLength - 1] = '\0';
 
 	while(backtrack != START) {
 
-		std::cout << backtrack;
+#ifndef NDEBUG
 
+		Logger.log(0, KERNEL, string("Current backtrack:\t" + backtrack).c_str());
+
+#endif
 		if (backtrack == UP) {
 			alignments[alnLength + aln_pos] = '-';
 			alignments[aln_pos] = read[read_pos--];
@@ -482,9 +519,9 @@ void DefaultKernel::calc_alignment_needleman_wunsch(char const * const read,
 	alignment->readEnd = alnLength - 1;
 	alignment->refEnd = alnLength - 1;
 
-	std::cout << "\tBacktrack end" << std::endl;
-
 	delete [] alignments; alignments = 0;
 	delete [] max_coordinates; max_coordinates = 0;
 	delete [] matrix; matrix = 0;
 }
+
+#undef KERNEL
