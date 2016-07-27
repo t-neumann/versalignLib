@@ -1,4 +1,4 @@
 MESSAGE( STATUS "CMAKE_CURRENT_BINARY_DIR: " ${CMAKE_CURRENT_BINARY_DIR} )
 MESSAGE( STATUS "CMAKE_CURRENT_SOURCE_DIR: " ${CMAKE_CURRENT_SOURCE_DIR} )
 
-add_library(Utils versalignUtil.cpp)
+add_library(Utils STATIC versalignUtil.cpp)

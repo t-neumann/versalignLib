@@ -1,7 +1,7 @@
 MESSAGE( STATUS "CMAKE_CURRENT_BINARY_DIR: " ${CMAKE_CURRENT_BINARY_DIR} )
 MESSAGE( STATUS "CMAKE_CURRENT_SOURCE_DIR: " ${CMAKE_CURRENT_SOURCE_DIR} )
 
-add_executable (Versalign main.cpp dll_handling.cpp AVXSupportChecker.cpp FastaProvider.h)
+add_executable (Versalign main.cpp)
 #message(STATUS "Linking plain Kernel")
 #target_link_libraries (Versalign plainKernel)
 #message(STATUS "Linking openCL Kernel")
@@ -12,6 +12,6 @@ add_executable (Versalign main.cpp dll_handling.cpp AVXSupportChecker.cpp FastaP
 #message(STATUS "Linking AVX Kernel")
 #target_link_libraries (Versalign AVXKernel)
 message(STATUS "Linking Utils")
-target_link_libraries (Versalign Timer)
+#target_link_libraries (Versalign Timer)
 target_link_libraries (Versalign Utils)
 target_link_libraries (Versalign "-ldl")

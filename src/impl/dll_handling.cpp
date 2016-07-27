@@ -10,7 +10,7 @@ void * DLL_function_retreival(int const dll, char const * const name,
 	void * sdll = DLLmap[dll];
 	void * pf = dlsym(sdll, name);
 	if (required && (pf == 0)) {
-		std::cout << "COULD NOT FIND FUNCTION " << name << std::endl;
+		std::cerr << "COULD NOT FIND FUNCTION " << name << std::endl;
 	}
 	return pf;
 }
@@ -21,7 +21,7 @@ int const DLL_init(char const * const filename,
 		void * sdl_lib = dlopen(filename, RTLD_LAZY);
 
 		if (!sdl_lib) {
-			std::cout << "Failed loading DLL: " << filename << std::endl;
+			std::cerr << "Failed loading DLL: " << filename << std::endl;
 			return -1;
 		}
 
@@ -43,7 +43,7 @@ int const DLL_init(char const * const filename,
 
 		return index;
 	} catch (int err) {
-		std::cout << "Error opening DLL: " << filename << std::endl;
+		std::cerr << "Error opening DLL: " << filename << std::endl;
 	}
 	return 0;
 }
