@@ -1,10 +1,17 @@
-MESSAGE( STATUS "CMAKE_CURRENT_BINARY_DIR: " ${CMAKE_CURRENT_BINARY_DIR} )
-MESSAGE( STATUS "CMAKE_CURRENT_SOURCE_DIR: " ${CMAKE_CURRENT_SOURCE_DIR} )
+cmake_minimum_required (VERSION 2.8.11)
 
 include_directories (${PROJECT_BINARY_DIR})
 
+###################################################
+# Build hexify executable for OpenCL source import
+###################################################
+
 MESSAGE (STATUS "project binary dir" ${PROJECT_BINARY_DIR})
 add_executable(hexify hexify/hexify.cpp)
+
+###################################################
+# Import OpenCL source
+###################################################
 
 ADD_CUSTOM_COMMAND(
 	OUTPUT ${PROJECT_BINARY_DIR}/opencl_definitions.h
@@ -32,6 +39,11 @@ ADD_CUSTOM_COMMAND(
 	COMMENT "Hexifying alignment_kernels"
 	MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/opencl_c/alignment_kernels.cl
 )
+
+
+###################################################
+# Link OpenCL libraries
+###################################################
 
 FIND_PATH(OPENCL_INCLUDE_DIR
 	NAMES
@@ -77,7 +89,5 @@ mark_as_advanced(
   
 INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIR})
 
-#add_library(testOCL STATIC ${PROJECT_BINARY_DIR}/opencl_definitions.h ${PROJECT_BINARY_DIR}/scoring_kernels.h ${PROJECT_BINARY_DIR}/alignment_kernels.h ocl_testing.cpp)
 add_library(OpenCLKernel SHARED ${PROJECT_BINARY_DIR}/opencl_definitions.h ${PROJECT_BINARY_DIR}/scoring_kernels.h ${PROJECT_BINARY_DIR}/alignment_kernels.h OpenCLKernel.cpp OpenCLKernel_dllexport.cpp)
 target_link_libraries(OpenCLKernel ${OPENCL_LIBRARY})
-#target_link_libraries(testOCL ${OPENCL_LIBRARY})

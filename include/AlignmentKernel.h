@@ -10,12 +10,17 @@
 #define ALIGNMENTKERNEL_H
 
 struct Alignment {
-	char * read;
-	char * ref;
+	char * read = 0;
+	char * ref = 0;
 	short readStart;
 	short readEnd;
 	short refStart;
 	short refEnd;
+
+	~Alignment() {
+		if (read != 0) delete[] read;
+		if (ref != 0) delete[] ref;
+	}
 };
 
 /*

@@ -1,6 +1,5 @@
-MESSAGE( STATUS "CMAKE_CURRENT_BINARY_DIR: " ${CMAKE_CURRENT_BINARY_DIR} )
-MESSAGE( STATUS "CMAKE_CURRENT_SOURCE_DIR: " ${CMAKE_CURRENT_SOURCE_DIR} )
+cmake_minimum_required (VERSION 2.8.11)
 
-add_subdirectory (default)
 add_subdirectory (AVX-SSE)
 add_subdirectory (OpenCL)
+add_subdirectory (default)

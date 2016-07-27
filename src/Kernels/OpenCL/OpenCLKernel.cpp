@@ -488,8 +488,7 @@ std::vector<cl::Device> OpenCLKernel::fission_opencl_device(
 	// Always only use maximum of 3 quarters for computation and leave 1 quarter for background processes
 	int max_devices = device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>();
 	int fission = max_devices / 4 * 3;
-	fission = std::max(std::min(fission, Parameters.param_int("num_threads")),
-			1);
+	fission = std::max(std::min(fission, Parameters.param_int("num_threads")),1);
 
 	// Partition CPU
 	cl_device_partition_property props[4];
