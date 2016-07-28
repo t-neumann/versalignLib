@@ -11,11 +11,11 @@ Source: [tar](https://github.com/t-neumann/versalignLib/archive/v0.1.tar.gz),[zi
 What is it?
 -----------
 
-**versalignLib** is a set of libraries of implementations of the sequence alignment algorithms
+**versalignLib** is a showcasing project of parallelization technologies set of libraries of implementations of the sequence alignment algorithms
 [Smith-Waterman](https://en.wikipedia.org/wiki/Smith%E2%80%93Waterman_algorithm)
 and [Needleman-Wunsch](https://en.wikipedia.org/wiki/Needleman%E2%80%93Wunsch_algorithm).
 
-Each library contains implementations utilizing a different
+It builds a set of libraries, each library containing implementations utilizing a different
 parallelization technology (OpenMP, SSE2, AVX2, OpenCL). They are provided as [shared objects](https://en.wikipedia.org/wiki/Dynamic_loading)
 and can be dynamically loaded depending on available resources and can be benchmarked to one another.
 
