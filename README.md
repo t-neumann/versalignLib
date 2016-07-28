@@ -58,7 +58,9 @@ In case the symlink to the `libOpenCL.so.1` library is not preserved, recreate i
 
 *cmake* automatically checks whether AVX2 build support is available and will only produce the shared object if if detects support.
 
-**Caveat:** You still need to check for AVX2 instruction support during runtime, for more see the **versalignLib** example implementation!
+**Caveat 1:** You still need to check for AVX2 instruction support during runtime, for more see the **versalignLib** example implementation!
+
+**Caveat 2:** OpenMP support for the AVX2 Kernel is currently disabled and needs more bugfixing!
 
 ### Build
 
