@@ -26,20 +26,56 @@ Building **versalignLib** requires *[cmake](http://www.cmake.org/)* (>=2.8.11), 
 
 Typically *cmake* and *g++* should be already available on your machine. If not, please install them.
 
+### OpenMP
+
+To activate OpenMP parallelization, your compiler needs to have OpenMP support. Otherwise all Kernels except the OpenCL Kernel will run single-threaded. OpenMP is natively supported by *gcc* and for newer versions of *Clang*.
+
 ### OpenCL
 
 To build the OpenCL library, an OpenCL implementation must be available on your machine.
 
-* Mac OS X comes natively with an [OpenCL implementation](https://developer.apple.com/opencl/).
+#### Mac
 
-* For Linux, **versalignLib** utilizes the [AMD OpenCL™ APP SDK](http://developer.amd.com/appsdk). All you need to to is to make **versalignLib** aware of the AMD OpenCL™ APP SDK library by setting the following environment variables:
+Mac OS X comes natively with an [OpenCL implementation](https://developer.apple.com/opencl/). No need for further setup.
 
+#### Linux
+For Linux, **versalignLib** utilizes the [AMD OpenCL™ APP SDK](http://developer.amd.com/appsdk). All you need to to is to make **versalignLib** aware of the AMD OpenCL™ APP SDK library by setting the following environment variables:
 
-    cd versalignLib
-    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PWD/opencl-AMD-sdk/x86_64/lib"
-    export OPENCL_VENDOR_PATH="$PWD/opencl-AMD-sdk/x86_64/lib/vendors"
-   
+ 
+```
+cd versalignLib
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PWD/opencl-AMD-sdk/x86_64/lib"
+export OPENCL_VENDOR_PATH="$PWD/opencl-AMD-sdk/x86_64/lib/vendors"
+```
 
+In case the symlink to the `libOpenCL.so.1` library is not preserved, recreate it like this:
+
+```
+(cd opencl-AMD-sdk/x86_64/lib ; rm libOpenCL.so ; ln -s libOpenCL.so.1 libOpenCL.so)
+```
+
+### AVX2
+
+*cmake* automatically checks whether AVX2 build support is available and will only produce the shared object if if detects support.
+
+**Caveat:** You still need to check for AVX2 instruction support during runtime, for more see the **versalignLib** example implementation!
+
+### Build
+
+To build **versalignLib** simply run the following commands:
+
+```
+cd versalignLib
+mkdir build
+cd build
+
+# Release
+cmake -DCMAKE_BUILD_TYPE=Release ..
+# Debug
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+
+make
+```
 
 
 System requirements
