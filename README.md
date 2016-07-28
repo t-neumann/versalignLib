@@ -17,6 +17,31 @@ Each library contains implementations utilizing a different
 parallelization technology (OpenMP, SSE2, AVX2, OpenCL). They are provided as [shared objects](https://en.wikipedia.org/wiki/Dynamic_loading)
 and can be dynamically loaded depending on available resources and can be benchmarked to one another.
 
+INSTALLATION
+============
+
+Building **versalignLib** requires *[cmake](http://www.cmake.org/)* (>=2.8.11), *g++* and an OpenCL implementation are required.
+
+### Build tools
+
+Typically *cmake* and *g++* should be already available on your machine. If not, please install them.
+
+### OpenCL
+
+To build the OpenCL library, an OpenCL implementation must be available on your machine.
+
+* Mac OS X comes natively with an [OpenCL implementation](https://developer.apple.com/opencl/).
+
+* For Linux, **versalignLib** utilizes the [AMD OpenCL™ APP SDK](http://developer.amd.com/appsdk). All you need to to is to make **versalignLib** aware of the AMD OpenCL™ APP SDK library by setting the following environment variables:
+
+
+    cd versalignLib
+    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PWD/opencl-AMD-sdk/x86_64/lib"
+    export OPENCL_VENDOR_PATH="$PWD/opencl-AMD-sdk/x86_64/lib/vendors"
+   
+
+
+
 System requirements
 -------------------
 
@@ -37,7 +62,7 @@ System requirements
     </tr>
     <tr>
       <td><b>Software:</b></td>
-      <td><a href="https://cmake.org/"><i>cmake</i></a></td>
+      <td><a href="https://cmake.org/"><i>cmake</i></a> (>=2.8.11)</td>
     </tr>
   </tbody>
 </table>
