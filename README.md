@@ -17,6 +17,8 @@ Each library contains implementations utilizing a different
 parallelization technology (OpenMP, SSE2, AVX2, OpenCL). They are provided as [shared objects](https://en.wikipedia.org/wiki/Dynamic_loading)
 and can be dynamically loaded depending on available resources and can be benchmarked to one another.
 
+**For any details on usage and benchmarks of the reference implementation, please refer to the [Github wiki](https://github.com/t-neumann/versalignLib/wiki).**
+
 INSTALLATION
 ============
 
