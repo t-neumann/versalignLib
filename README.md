@@ -6,6 +6,8 @@ Programming language: C/C++11
 
 Technologies: [SSE2](https://en.wikipedia.org/wiki/SSE2), [AVX2](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions), [OpenCL](https://www.khronos.org/opencl/), [OpenMP](www.openmp.org)
 
+Source: [tar](https://github.com/t-neumann/versalignLib/archive/v0.1.tar.gz),[zip](https://github.com/t-neumann/versalignLib/archive/v0.1.zip) 
+
 What is it?
 -----------
 
