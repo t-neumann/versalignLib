@@ -24,7 +24,7 @@ and can be dynamically loaded depending on available resources and can be benchm
 INSTALLATION
 ============
 
-Building **versalignLib** requires *[cmake](http://www.cmake.org/)* (>=2.8.11), *g++* and an OpenCL implementation are required.
+Building **versalignLib** requires *[cmake](http://www.cmake.org/)* (>=2.8.11), *g++* and an OpenCL implementation.
 
 ### Build tools
 
